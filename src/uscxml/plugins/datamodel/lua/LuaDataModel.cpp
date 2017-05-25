@@ -112,7 +112,7 @@ static Data getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& lua) {
 			}
 			else {
 				int i_key = luaKey.cast<double>();
-				data.array[i_key]=getLuaAsData(_luaState, luaVal);
+				data.array.insert(std::make_pair(i_key,getLuaAsData(_luaState, luaVal)));
 			}
 		}
 	}	
