@@ -92,29 +92,32 @@ static Data getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& lua) {
 	} else if(lua.isNil()) {
 		data.atom = "nil";
 		data.type = Data::INTERPRETED;
-	} else if(lua.isNumber()) {
+	} else if (lua.type() == LUA_TBOOLEAN) {
+		data.atom = lua.cast<bool>() ? "true" : "false";
+		data.type = Data::INTERPRETED;
+	}
+	else if(lua.isNumber()) {
 		data.atom = toStr(lua.cast<double>());
 		data.type = Data::INTERPRETED;
 	} else if(lua.isString()) {
 		data.atom = lua.cast<std::string>();
 		data.type = Data::VERBATIM;
 	} else if(lua.isTable()) {
-//		bool isArray = false;
-//		bool isMap = false;
-		for (luabridge::Iterator iter (lua); !iter.isNil(); ++iter) {
+		for (luabridge::Iterator iter(lua); !iter.isNil(); ++iter) {
 			luabridge::LuaRef luaKey = iter.key();
 			luabridge::LuaRef luaVal = *iter;
 			if (luaKey.isString()) {
-//				assert(!isArray);
-//				isMap = true;
 				// luaKey.tostring() is not working?! see issue84
 				data.compound[luaKey.cast<std::string>()] = getLuaAsData(_luaState, luaVal);
-			} else {
-//				assert(!isMap);
-//				isArray = true;
-				data.array.push_back(getLuaAsData(_luaState, luaVal));
+			}
+			else {
+				int i_key = luaKey.cast<double>();
+				data.array[i_key]=getLuaAsData(_luaState, luaVal);
 			}
 		}
+	}	
+	else {
+		ERROR_EXECUTION_THROW("Lua type [" + std::to_string(lua.type()) + "] is not supported!");
 	}
 	return data;
 }
@@ -137,26 +140,20 @@ static luabridge::LuaRef getDataAsLua(lua_State* _luaState, const Data& data) {
 			return luaData;
 		}
 	}
-	if (data.compound.size() > 0) {
+	
+	// lua tables can be mixed!
+	// tmp = { [1]=1,[2]=2,["test"]=5 }
+	if (data.compound.size() > 0 || data.array.size() > 0) {
 		luaData = luabridge::newTable(_luaState);
+
+		for (auto it : data.array) {
+			luaData[it.first] = getDataAsLua(_luaState, it.second);
+		}
 		std::map<std::string, Data>::const_iterator compoundIter = data.compound.begin();
 		while(compoundIter != data.compound.end()) {
 			luaData[compoundIter->first] = getDataAsLua(_luaState, compoundIter->second);
 			compoundIter++;
-		}
-//		luaData["inspect"] = luaInspect;
-		return luaData;
-	}
-	if (data.array.size() > 0) {
-		luaData = luabridge::newTable(_luaState);
-		std::list<Data>::const_iterator arrayIter = data.array.begin();
-//		uint32_t index = 0;
-		while(arrayIter != data.array.end()) {
-//            luaData[index++] = getDataAsLua(_luaState, *arrayIter);
-			luaData.append(getDataAsLua(_luaState, *arrayIter));
-			arrayIter++;
-		}
-//		luaData["inspect"] = luaInspect;
+		}		
 		return luaData;
 	}
 	if (data.atom.size() > 0) {
@@ -234,7 +231,9 @@ void LuaDataModel::setup() {
 			}
 		}
 	} catch (luabridge::LuaException e) {
+#if 0 // really annoying message, especially when there are a lot of invokers
 		LOG(_callbacks->getLogger(), USCXML_INFO) << e.what() << std::endl;
+#endif
 	}
 
 	luabridge::getGlobalNamespace(_luaState).beginClass<LuaDataModel>("DataModel").endClass();
