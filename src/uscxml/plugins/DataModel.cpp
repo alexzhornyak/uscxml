@@ -30,6 +30,11 @@ bool DataModel::isValidSyntax(const std::string& expr) {
 	return _impl->isValidSyntax(expr);
 }
 
+bool DataModel::isValidScriptSyntax(const std::string & script)
+{
+	return _impl->isValidScriptSyntax(script);
+}
+
 void DataModel::setEvent(const Event& event) {
 	return _impl->setEvent(event);
 }

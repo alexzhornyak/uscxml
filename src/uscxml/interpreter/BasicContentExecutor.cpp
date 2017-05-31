@@ -691,7 +691,13 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 			Data d = _callbacks->getAsData(content);
 			if (!d.empty())
 				return d;
-		} catch(...) {}
+		} catch(uscxml::ErrorEvent &e) {
+			// we need at least to inform user about it
+			_callbacks->getLogger().log(USCXML_WARN) << e << std::endl;
+		}
+		catch (...) {
+			_callbacks->getLogger().log(USCXML_WARN) << __FUNCTION__ << ":" << __LINE__ << "Unknown error!" << std::endl;
+		}
 
 		return Data(spaceNormalize(content), Data::VERBATIM);
 
@@ -720,8 +726,11 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 					Data d = _callbacks->getAsData(contentSS.str());
 					if (!d.empty())
 						return d;
-				} catch (ErrorEvent &) {
-					return Data(spaceNormalize(contentSS.str()), Data::VERBATIM);
+				} catch (uscxml::ErrorEvent &e) {
+					// we need at least to inform user about it
+					_callbacks->getLogger().log(USCXML_WARN) << e << std::endl;
+				} catch (...) {
+					_callbacks->getLogger().log(USCXML_WARN) << __FUNCTION__ << ":" << __LINE__ << "Unknown error!" << std::endl;
 				}
 			}
 

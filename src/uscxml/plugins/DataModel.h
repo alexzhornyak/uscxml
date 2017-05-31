@@ -47,6 +47,8 @@ public:
 	/// @copydoc DataModelImpl::isValidSyntax()
 	virtual bool isValidSyntax(const std::string& expr);
 
+	virtual bool isValidScriptSyntax(const std::string &script);
+
 	/// @copydoc DataModelImpl::setEvent()
 	virtual void setEvent(const Event& event);
 

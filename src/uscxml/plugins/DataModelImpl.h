@@ -124,6 +124,10 @@ public:
 		return true; // overwrite when datamodel supports it
 	}
 
+	virtual bool isValidScriptSyntax(const std::string &script) {
+		return true; // overwrite when datamodel supports it
+	}
+
 	/**
 	 * Set the given event as `_event` in the data-model's global scope.
 	 * @param event The event as it was dequeued from either the internal or external queue.

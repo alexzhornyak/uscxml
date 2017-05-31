@@ -873,7 +873,7 @@ NEXT_SET:
 						scriptContent += (std::string)X(child->getNodeValue());
 				}
 
-				if (!_dataModel.isValidSyntax(scriptContent)) {
+				if (!_dataModel.isValidScriptSyntax(scriptContent)) {
 					issues.push_back(InterpreterIssue("Syntax error in script", script, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
@@ -910,7 +910,7 @@ NEXT_SET:
 			DOMElement* withExprAttr = *iter;
 			if (HAS_ATTR(withExprAttr, kXMLCharExpr)) {
 				if (DOMUtils::isMember(withExprAttr, datas) || DOMUtils::isMember(withExprAttr, assigns)) {
-					if (!_dataModel.isValidSyntax("foo = " + ATTR(withExprAttr, kXMLCharExpr))) { // TODO: this is ECMAScripty!
+					if (!_dataModel.isValidSyntax(ATTR(withExprAttr, kXMLCharExpr))) { // Corrected
 						issues.push_back(InterpreterIssue("Syntax error in expr attribute", withExprAttr, InterpreterIssue::USCXML_ISSUE_WARNING));
 						continue;
 					}

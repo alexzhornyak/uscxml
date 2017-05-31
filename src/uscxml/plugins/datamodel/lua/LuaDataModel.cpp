@@ -29,8 +29,6 @@
 #pragma warning(disable : 4800)
 #endif
 
-#include "LuaBridge.h"
-
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -76,7 +74,7 @@ static int luaEval(lua_State* luaState, const std::string& expr) {
 	return postStack - preStack;
 }
 
-static Data getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& lua) {
+Data LuaDataModel::getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& lua) {
 	Data data;
 	if (lua.isFunction()) {
 		// we are creating __tmpFunc
@@ -122,7 +120,7 @@ static Data getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& lua) {
 	return data;
 }
 
-static luabridge::LuaRef getDataAsLua(lua_State* _luaState, const Data& data) {
+luabridge::LuaRef LuaDataModel::getDataAsLua(lua_State* _luaState, const Data& data) {
 	luabridge::LuaRef luaData (_luaState);
 
 	if (data.node) {
@@ -375,12 +373,41 @@ void LuaDataModel::eval(const std::string& content) {
 }
 
 bool LuaDataModel::isValidSyntax(const std::string& expr) {
+	
+	const std::string s_expr = "return(" + expr + ")";
+	
 	int preStack = lua_gettop(_luaState);
-	int err = luaL_loadstring (_luaState, expr.c_str());
+	int err = luaL_loadstring (_luaState, s_expr.c_str());
+
+	if (err) {
+		std::string errMsg = lua_tostring(_luaState, -1);
+		lua_pop(_luaState, 1);  /* pop error message from the stack */
+		LOG(_callbacks->getLogger(), USCXML_ERROR) << errMsg << std::endl;
+	}
 
 	// clean stack again
 	lua_pop(_luaState, lua_gettop(_luaState) - preStack);
 
+
+	if (err == LUA_ERRSYNTAX)
+		return false;
+
+	return true;
+}
+
+bool LuaDataModel::isValidScriptSyntax(const std::string & expr)
+{
+	int preStack = lua_gettop(_luaState);
+	int err = luaL_loadstring(_luaState, expr.c_str());
+
+	// clean stack again
+	lua_pop(_luaState, lua_gettop(_luaState) - preStack);
+
+	if (err) {
+		std::string errMsg = lua_tostring(_luaState, -1);
+		lua_pop(_luaState, 1);  /* pop error message from the stack */
+		LOG(_callbacks->getLogger(), USCXML_ERROR) << errMsg << std::endl;
+	}
 
 	if (err == LUA_ERRSYNTAX)
 		return false;

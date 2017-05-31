@@ -428,11 +428,13 @@ void InterpreterImpl::initData(XERCESC_NS::DOMElement* root) {
 			try {
 				_dataModel.init(id, _execContent.elementAsData(root), additionalAttr);
 			} catch (ErrorEvent e) {
+				LOG(getLogger(), USCXML_WARN) << e << std::endl;
 				// test 453
 				_dataModel.init(id, _execContent.elementAsData(root, true), additionalAttr);
 			}
 		}
 	} catch(ErrorEvent e) {
+		LOG(getLogger(), USCXML_WARN) << e << std::endl;
 		// test 277
 		enqueueInternal(e);
 	}
