@@ -268,44 +268,45 @@ std::recursive_mutex StateTransitionMonitor::_mutex;
 
 void StateTransitionMonitor::beforeTakingTransition(Interpreter& interpreter, const XERCESC_NS::DOMElement* transition) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	LOG(_logger, USCXML_VERBATIM) << "Transition: " << uscxml::DOMUtils::xPathForNode(transition) << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << "Transition: " << uscxml::DOMUtils::xPathForNode(transition) << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 }
 
 void StateTransitionMonitor::onStableConfiguration(Interpreter& interpreter) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
 	LOG(_logger, USCXML_VERBATIM) << "Stable Config: { ";
 	printNodeSet(_logger, interpreter.getConfiguration());
-	LOG(_logger, USCXML_VERBATIM) << " }" << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << " }" << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 }
 
 void StateTransitionMonitor::beforeProcessingEvent(Interpreter& interpreter, const uscxml::Event& event) {
-	std::lock_guard<std::recursive_mutex> lock(_mutex);
+	std::lock_guard<std::recursive_mutex> lock(_mutex); 
+	
 	switch (event.eventType) {
 	case uscxml::Event::INTERNAL:
-		LOG(_logger, USCXML_VERBATIM) << "Internal Event: " << event.name << std::endl;
+		LOG(_logger, USCXML_VERBATIM) << "Internal Event: " << event.name << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 		break;
 	case uscxml::Event::EXTERNAL:
-		LOG(_logger, USCXML_VERBATIM) << "External Event: " << event.name << std::endl;
+		LOG(_logger, USCXML_VERBATIM) << "External Event: " << event.name << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 		break;
 	case uscxml::Event::PLATFORM:
-		LOG(_logger, USCXML_VERBATIM) << "Platform Event: " << event.name << std::endl;
+		LOG(_logger, USCXML_VERBATIM) << "Platform Event: " << event.name << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 		break;
 	}
 }
 
 void StateTransitionMonitor::beforeExecutingContent(Interpreter& interpreter, const XERCESC_NS::DOMElement* element) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	LOG(_logger, USCXML_VERBATIM) << "Executable Content: " << DOMUtils::xPathForNode(element) << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << "Executable Content: " << DOMUtils::xPathForNode(element) << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 }
 
 void StateTransitionMonitor::beforeExitingState(Interpreter& interpreter, const XERCESC_NS::DOMElement* state) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	LOG(_logger, USCXML_VERBATIM) << "Exiting: " << (HAS_ATTR(state, kXMLCharId) ? ATTR(state, kXMLCharId) : DOMUtils::xPathForNode(state)) << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << "Exiting: " << (HAS_ATTR(state, kXMLCharId) ? ATTR(state, kXMLCharId) : DOMUtils::xPathForNode(state)) << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 }
 
 void StateTransitionMonitor::beforeEnteringState(Interpreter& interpreter, const XERCESC_NS::DOMElement* state) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	LOG(_logger, USCXML_VERBATIM) << "Entering: " << (HAS_ATTR(state, kXMLCharId) ? ATTR(state, kXMLCharId) : DOMUtils::xPathForNode(state)) << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << "Entering: " << (HAS_ATTR(state, kXMLCharId) ? ATTR(state, kXMLCharId) : DOMUtils::xPathForNode(state)) << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 
 }
 
@@ -313,7 +314,7 @@ void StateTransitionMonitor::beforeMicroStep(Interpreter& interpreter) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
 	LOG(_logger, USCXML_VERBATIM) << "Microstep in config: {";
 	printNodeSet(_logger, interpreter.getConfiguration());
-	LOG(_logger, USCXML_VERBATIM) << "}" << std::endl;
+	LOG(_logger, USCXML_VERBATIM) << "}" << ", interpreter [" << interpreter.getImpl()->getName() << "]" << std::endl;
 }
 
 }
