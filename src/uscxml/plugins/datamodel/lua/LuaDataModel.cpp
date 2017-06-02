@@ -80,13 +80,16 @@ Data LuaDataModel::getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& l
 		// we are creating __tmpFunc
 		// then it will be assigned to data variable
 		luabridge::setGlobal(_luaState, lua, "__tmpFunc");
-
-		data.atom = "__tmpFunc";
+		data.atom = "__tmpFunc"; // safe in context of current interpreter, but!!! FORBIDDEN TO PASS IT TO ANOTHER INTERPRETER!!!
 		data.type = Data::INTERPRETED;
 	} else if(lua.isLightUserdata() || lua.isUserdata()) {
-		// not sure what to do
+		luabridge::setGlobal(_luaState, lua, "__tmpUserData");
+		data.atom = "__tmpUserData"; // DANGEROUS FOR USE, NOT RECOMMENDED
+		data.type = Data::INTERPRETED;
 	} else if(lua.isThread()) {
-		// not sure what to do
+		luabridge::setGlobal(_luaState, lua, "__tmpThread");
+		data.atom = "__tmpThread"; // DANGEROUS FOR USE, NOT RECOMMENDED
+		data.type = Data::INTERPRETED;
 	} else if(lua.isNil()) {
 		data.atom = "nil";
 		data.type = Data::INTERPRETED;
@@ -100,7 +103,7 @@ Data LuaDataModel::getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& l
 	} else if(lua.isString()) {
 		data.atom = lua.cast<std::string>();
 		data.type = Data::VERBATIM;
-	} else if(lua.isTable()) {
+	} else if(lua.isTable()) {		
 		for (luabridge::Iterator iter(lua); !iter.isNil(); ++iter) {
 			luabridge::LuaRef luaKey = iter.key();
 			luabridge::LuaRef luaVal = *iter;
@@ -112,6 +115,13 @@ Data LuaDataModel::getLuaAsData(lua_State* _luaState, const luabridge::LuaRef& l
 				int i_key = luaKey.cast<double>();
 				data.array.insert(std::make_pair(i_key,getLuaAsData(_luaState, luaVal)));
 			}
+		}
+		// here may be the moment, when Lua table will be empty,
+		// but we must prevent of returning empty data, 
+		// that's why will make an interpreted atom="{}"
+		if (data.array.empty() && data.compound.empty()) {
+			data.atom = "{}";
+			data.type = Data::INTERPRETED;
 		}
 	}	
 	else {
@@ -162,12 +172,16 @@ luabridge::LuaRef LuaDataModel::getDataAsLua(lua_State* _luaState, const Data& d
 		}
 		case Data::INTERPRETED: {
 			if (isNumeric(data.atom.c_str(), 10)) {
+				// !!!! what about, when System Delimiter is not a DOT,
+				// for example, Russian Keyaboard Layout ???
 				if (data.atom.find(".") != std::string::npos) {
 					luaData = strTo<double>(data.atom);
-				} else {
+				}
+				else {
 					luaData = strTo<long>(data.atom);
 				}
-			} else {
+			}
+			else {
 				int retVals = luaEval(_luaState, "return(" + data.atom + ");");
 				if (retVals == 1) {
 					luaData = luabridge::LuaRef::fromStack(_luaState, -1);
