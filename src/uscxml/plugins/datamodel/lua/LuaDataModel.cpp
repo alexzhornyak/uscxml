@@ -56,12 +56,6 @@ bool pluginConnect(pluma::Host& host) {
 }
 #endif
 
-//static int luaInspect(lua_State * l) {
-//	return 0;
-//}
-
-bool _luaHasXMLParser = false;
-
 static int luaEval(lua_State* luaState, const std::string& expr) {
 	int preStack = lua_gettop(luaState);
 	int error = luaL_loadstring(luaState, expr.c_str()) || lua_pcall(luaState, 0, LUA_MULTRET, 0);
@@ -134,19 +128,7 @@ luabridge::LuaRef LuaDataModel::getDataAsLua(lua_State* _luaState, const Data& d
 	luabridge::LuaRef luaData (_luaState);
 
 	if (data.node) {
-		if (_luaHasXMLParser) {
-			const luabridge::LuaRef& luaLom = luabridge::getGlobal(_luaState, "lxp.lom");
-			const luabridge::LuaRef& luaLomParse = luaLom["parse"];
-			assert(luaLomParse.isFunction());
-			std::stringstream luaXMLSS;
-			luaXMLSS << data.node;
-			try {
-				luaData = luaLomParse(luaXMLSS.str());
-			} catch (luabridge::LuaException e) {
-				ERROR_EXECUTION_THROW(e.what());
-			}
-			return luaData;
-		}
+		ERROR_EXECUTION_THROW("No DOM support in Lua datamodel");
 	}
 	
 	// lua tables can be mixed!
@@ -229,25 +211,6 @@ void LuaDataModel::setup() {
 	_luaState = luaL_newstate();
 	luaL_openlibs(_luaState);
 
-	try {
-		const luabridge::LuaRef& requireFunc = luabridge::getGlobal(_luaState, "require");
-		if (requireFunc.isFunction()) {
-			const luabridge::LuaRef& resultLxp = requireFunc("lxp");
-			const luabridge::LuaRef& resultLxpLOM = requireFunc("lxp.lom");
-
-			// MSVC compiler bug with implicit cast operators, see comments in LuaRef class
-			if ((bool)resultLxp && (bool)resultLxpLOM) {
-				_luaHasXMLParser = true;
-				luabridge::setGlobal(_luaState, resultLxp, "lxp");
-				luabridge::setGlobal(_luaState, resultLxpLOM, "lxp.lom");
-			}
-		}
-	} catch (luabridge::LuaException e) {
-#if 0 // really annoying message, especially when there are a lot of invokers
-		LOG(_callbacks->getLogger(), USCXML_INFO) << e.what() << std::endl;
-#endif
-	}
-
 	luabridge::getGlobalNamespace(_luaState).beginClass<LuaDataModel>("DataModel").endClass();
 	luabridge::setGlobal(_luaState, this, "__datamodel");
 
@@ -303,7 +266,6 @@ void LuaDataModel::setEvent(const Event& event) {
 		luaEvent["invokeid"] = event.invokeid;
 	if (!event.hideSendId)
 		luaEvent["sendid"] = event.sendid;
-//	luaEvent["inspect"] = luaInspect;
 
 	switch (event.eventType) {
 	case Event::INTERNAL:
@@ -321,20 +283,7 @@ void LuaDataModel::setEvent(const Event& event) {
 	}
 
 	if (event.data.node) {
-		if (_luaHasXMLParser) {
-			const luabridge::LuaRef& luaLom = luabridge::getGlobal(_luaState, "lxp.lom");
-			const luabridge::LuaRef& luaLomParse = luaLom["parse"];
-			assert(luaLomParse.isFunction());
-			std::stringstream luaXMLSS;
-			luaXMLSS << event.data.node;
-			try {
-				luaEvent["data"] = luaLomParse(luaXMLSS.str());
-			} catch (luabridge::LuaException e) {
-				ERROR_EXECUTION_THROW(e.what());
-			}
-		} else {
-			ERROR_EXECUTION_THROW("No DOM support in Lua datamodel");
-		}
+		ERROR_EXECUTION_THROW("No DOM support in Lua datamodel");		
 	} else {
 		// _event.data is KVP
 		Data d = event.data;
@@ -414,14 +363,14 @@ bool LuaDataModel::isValidScriptSyntax(const std::string & expr)
 	int preStack = lua_gettop(_luaState);
 	int err = luaL_loadstring(_luaState, expr.c_str());
 
-	// clean stack again
-	lua_pop(_luaState, lua_gettop(_luaState) - preStack);
-
 	if (err) {
 		std::string errMsg = lua_tostring(_luaState, -1);
 		lua_pop(_luaState, 1);  /* pop error message from the stack */
 		LOG(_callbacks->getLogger(), USCXML_ERROR) << errMsg << std::endl;
 	}
+
+	// clean stack again
+	lua_pop(_luaState, lua_gettop(_luaState) - preStack);
 
 	if (err == LUA_ERRSYNTAX)
 		return false;
@@ -439,8 +388,6 @@ uint32_t LuaDataModel::getLength(const std::string& expr) {
 
 	int retVals = luaEval(_luaState, trimmedExpr);
 
-#if 1
-
 	if (retVals == 1 && lua_isnumber(_luaState, -1)) {
 		int result = lua_tointeger(_luaState, -1);
 		lua_pop(_luaState, 1);
@@ -450,21 +397,6 @@ uint32_t LuaDataModel::getLength(const std::string& expr) {
 	lua_pop(_luaState, retVals);
 	ERROR_EXECUTION_THROW("'" + expr + "' does not evaluate to an array.");
 	return 0;
-#else
-
-	if (retVals == 1) {
-		luabridge::LuaRef luaData = luabridge::LuaRef::fromStack(_luaState, -1);
-		if (luaData.isNumber()) {
-			lua_pop(_luaState, retVals);
-			return luaData.cast<int>();
-		}
-	}
-	lua_pop(_luaState, retVals);
-
-	ERROR_EXECUTION_THROW("'" + expr + "' does not evaluate to an array.");
-	return 0;
-
-#endif
 }
 
 void LuaDataModel::setForeach(const std::string& item,
@@ -512,27 +444,11 @@ void LuaDataModel::assign(const std::string& location, const Data& data, const s
 
 	if (data.node) {
 		ERROR_EXECUTION_THROW("Cannot assign xml nodes in lua datamodel");
-
-		// TODO: DOM is prepared by swig
-
-//        return SWIG_JSC_NewPointerObj(_ctx,
-//                                      (void*)node,
-//                                      SWIG_TypeDynamicCast(SWIGTYPE_p_XERCES_CPP_NAMESPACE__DOMNode,
-//                                                           SWIG_as_voidptrptr(&node)),
-//                                      0);
-
-
-//        JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), JSStringCreateWithUTF8CString(location.c_str()), getNodeAsValue(data.node), 0, &exception);
 	} else {
-
-
 		luabridge::LuaRef lua = getDataAsLua(_luaState, data);
 
 		luabridge::setGlobal(_luaState, lua, "__tmpAssign");
 		eval(location + "= __tmpAssign");
-
-
-//        std::cout << Data::toJSON(evalAsData(location)) << std::endl;
 	}
 }
 

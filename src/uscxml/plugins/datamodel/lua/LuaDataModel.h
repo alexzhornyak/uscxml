@@ -50,6 +50,7 @@ namespace uscxml {
  */
 
 class USCXML_API LuaDataModel : public DataModelImpl {
+	bool _luaHasXMLParser = false;
 public:
 	LuaDataModel();
 	virtual ~LuaDataModel();
