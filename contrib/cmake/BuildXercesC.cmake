@@ -3,7 +3,7 @@
 
 include(ExternalProject)
 if(MSVC)
-	set(VC_VERSION VC12)
+	set(VC_VERSION VC14)
 	# see https://en.wikipedia.org/wiki/Visual_C%2B%2B
 
 	# CMAKE_CXX_COMPILER_VERSION=16.0.40219.1

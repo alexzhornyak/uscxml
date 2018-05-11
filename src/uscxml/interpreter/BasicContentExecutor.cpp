@@ -290,9 +290,17 @@ void BasicContentExecutor::processLog(XERCESC_NS::DOMElement* content) {
 
 void BasicContentExecutor::processScript(XERCESC_NS::DOMElement* content) {
 	// contents were already downloaded in setupDOM, see to SCXML rec 5.8
-	std::string scriptContent(X(content->getTextContent()));
-	_callbacks->eval(scriptContent);
+	
+	std::string scriptContent("");
 
+	DOMNode *node = content->getFirstChild();
+	if (node->getNodeType() == DOMNode::TEXT_NODE) {
+		char *cstr = XMLString::transcode(node->getNodeValue());
+		scriptContent = cstr;
+		XMLString::release(&cstr);
+	}
+	
+	_callbacks->eval(scriptContent);
 }
 
 void BasicContentExecutor::process(XERCESC_NS::DOMElement* block) {
