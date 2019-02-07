@@ -39,6 +39,8 @@
 #include <memory>
 #include <mutex>
 
+#include <Vld.h>
+
 #define VERBOSE 0
 
 namespace uscxml {

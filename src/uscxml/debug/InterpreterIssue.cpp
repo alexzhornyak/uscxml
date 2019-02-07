@@ -146,7 +146,7 @@ NEXT_PAIR:
 std::list<InterpreterIssue> InterpreterIssue::forInterpreter(InterpreterImpl* interpreter) {
 	// some things we need to prepare first
 	if (interpreter->_factory == NULL)
-		interpreter->_factory = Factory::getInstance();
+		interpreter->_factory = &Factory::getInstance();
 	interpreter->setupDOM();
 
 	std::list<InterpreterIssue> issues;

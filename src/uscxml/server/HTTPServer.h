@@ -30,7 +30,7 @@
 extern "C" {
 #include "event2/util.h"                // for evutil_socket_t
 #include <event2/http.h>                // for evhttp_request
-#include <evws.h>
+#include <evws/evws.h>
 }
 
 #include "uscxml/Common.h"              // for USCXML_API
@@ -103,6 +103,8 @@ public:
 		return getInstance(0, 0, NULL);
 	}
 
+	static void cleanup();
+
 	static std::string getBaseURL(ServerType type = HTTP);
 
 	static void reply(const Reply& reply);
@@ -166,21 +168,21 @@ private:
 	std::map<std::string, WebSocketServlet*> _wsServlets;
 	typedef std::map<std::string, WebSocketServlet*>::iterator ws_servlet_iter_t;
 
-	struct event_base* _base;
-	struct evhttp* _http;
-	struct evws* _evws;
+	struct event_base* _base = nullptr;
+	struct evhttp* _http = nullptr;
+	struct evws* _evws = nullptr;
 
 	struct evhttp_bound_socket* _httpHandle;
 	evutil_socket_t _wsHandle;
 
-	unsigned short _port;
-	unsigned short _wsPort;
+	unsigned short _port = 0;
+	unsigned short _wsPort = 0;
 	std::string _address;
 
 	static HTTPServer* _instance;
 
 	static std::recursive_mutex _instanceMutex;
-	std::thread* _thread;
+	std::thread* _thread = nullptr;
 	std::recursive_mutex _mutex;
 	bool _isRunning;
 

@@ -79,7 +79,7 @@ InterpreterImpl::InterpreterImpl() : _isInitialized(false), _document(NULL), _sc
 	}
 
 	_sessionId = UUID::getUUID();
-	_factory = Factory::getInstance();
+	_factory = &Factory::getInstance();
 }
 
 

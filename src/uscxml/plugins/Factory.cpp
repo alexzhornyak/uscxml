@@ -33,6 +33,10 @@
 #include "uscxml/plugins/InvokerImpl.h"
 #include "uscxml/plugins/DataModelImpl.h"
 
+extern "C" {
+	#include <event2/event.h>
+}
+
 #if 0
 #include <xercesc/dom/DOM.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
@@ -97,11 +101,11 @@ Factory::Factory(Factory* parentFactory) : _parentFactory(parentFactory) {
 }
 
 Factory::Factory(const std::string& pluginPath, Factory* parentFactory) : _parentFactory(parentFactory), _pluginPath(pluginPath) {
-	registerPlugins();
+	
 }
 
 Factory::Factory(const std::string& pluginPath) : _parentFactory(NULL), _pluginPath(pluginPath) {
-	registerPlugins();
+	
 }
 
 void Factory::setDefaultPluginPath(const std::string& path) {
@@ -165,73 +169,63 @@ void Factory::registerPlugins() {
 		ERROR_EXECUTION_THROW("No path to plugins known, export USCXML_PLUGIN_PATH or pass path as parameter");
 	}
 
-#else
+#else	
 
 #ifdef WITH_IOPROC_SCXML
 	{
-		SCXMLIOProcessor* ioProcessor = new SCXMLIOProcessor();
-		registerIOProcessor(ioProcessor);
+		registerIOProcessor(std::shared_ptr<SCXMLIOProcessor>(new SCXMLIOProcessor));
 	}
 #endif
 
 #ifdef WITH_IOPROC_BASICHTTP
 	{
-		BasicHTTPIOProcessor* ioProcessor = new BasicHTTPIOProcessor();
-		registerIOProcessor(ioProcessor);
+		registerIOProcessor(std::shared_ptr<BasicHTTPIOProcessor>(new BasicHTTPIOProcessor));
 	}
 #endif
 
 #ifdef WITH_DM_ECMA_V8
 	{
-		V8DataModel* dataModel = new V8DataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<V8DataModel>(new V8DataModel));
 	}
 #endif
 
 #ifdef WITH_DM_ECMA_JSC
 	{
-		JSCDataModel* dataModel = new JSCDataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<JSCDataModel>(new JSCDataModel));
 	}
 #endif
 
 #ifdef WITH_DM_LUA
 	{
-		LuaDataModel* dataModel = new LuaDataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<LuaDataModel>(new LuaDataModel));
 	}
 #endif
 
 #ifdef WITH_DM_C89
 	{
-		C89DataModel* dataModel = new C89DataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<C89DataModel>(new C89DataModel));
 	}
 #endif
 
 #ifdef WITH_DM_PROMELA
 	{
-		PromelaDataModel* dataModel = new PromelaDataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<PromelaDataModel>(new PromelaDataModel));
 	}
 #endif
 
 	{
-		NullDataModel* dataModel = new NullDataModel();
-		registerDataModel(dataModel);
+		registerDataModel(std::shared_ptr<NullDataModel>(new NullDataModel));
 	}
 
 #ifdef WITH_INV_SCXML
 	{
-		USCXMLInvoker* invoker = new USCXMLInvoker();
-		registerInvoker(invoker);
+		registerInvoker(std::shared_ptr<USCXMLInvoker>(new USCXMLInvoker));
 	}
 #endif
 
 #ifdef WITH_INV_DIRMON
 	{
-		DirMonInvoker* inv = new DirMonInvoker();
-		registerInvoker(inv);
+		registerInvoker(std::shared_ptr<DirMonInvoker>(new DirMonInvoker));
 	}
 #endif
 
@@ -241,7 +235,7 @@ void Factory::registerPlugins() {
 }
 
 #define LIST_COMPONENTS(type, name) \
-std::map<std::string, type*>::iterator iter = name.begin(); \
+auto iter = name.begin(); \
 while(iter != name.end()) { \
 	std::list<std::string> names = iter->second->getNames(); \
 	std::list<std::string>::iterator nameIter = names.begin(); \
@@ -282,7 +276,7 @@ void Factory::listComponents() {
 	}
 	{
 		LOGD(USCXML_VERBATIM) << "Available Elements:" << std::endl;
-		std::map<std::pair<std::string, std::string>, ExecutableContentImpl*>::iterator iter = _executableContent.begin();
+		auto iter = _executableContent.begin();
 		while(iter != _executableContent.end()) {
 			LOGD(USCXML_VERBATIM) << "\t" << iter->second->getNamespace() << " / " << iter->second->getLocalName() << std::endl;
 			iter++;
@@ -291,7 +285,68 @@ void Factory::listComponents() {
 	}
 }
 
-void Factory::registerIOProcessor(IOProcessorImpl* ioProcessor) {
+void Factory::registerCustomPlugins(const std::set<PluginType> &pluginTypes)
+{
+#ifdef WITH_IOPROC_SCXML
+	if (pluginTypes.find(ptSCXMLIOProcessor) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerIOProcessor(std::shared_ptr<SCXMLIOProcessor>(new SCXMLIOProcessor));
+	}
+#endif
+
+#ifdef WITH_IOPROC_BASICHTTP
+	if (pluginTypes.find(ptBasicHTTPIOProcessor) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerIOProcessor(std::shared_ptr<BasicHTTPIOProcessor>(new BasicHTTPIOProcessor));
+	}
+#endif
+
+#ifdef WITH_DM_ECMA_V8
+	if (pluginTypes.find(ptV8DataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<V8DataModel>(new V8DataModel));
+	}
+#endif
+
+#ifdef WITH_DM_ECMA_JSC
+	if (pluginTypes.find(ptJSCDataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<JSCDataModel>(new JSCDataModel));
+	}
+#endif
+
+#ifdef WITH_DM_LUA
+	if (pluginTypes.find(ptLuaDataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<LuaDataModel>(new LuaDataModel));
+	}
+#endif
+
+#ifdef WITH_DM_C89
+	if (pluginTypes.find(ptC89DataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<C89DataModel>(new C89DataModel));
+	}
+#endif
+
+#ifdef WITH_DM_PROMELA
+	if (pluginTypes.find(ptPromelaDataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<PromelaDataModel>(new PromelaDataModel));
+	}
+#endif
+
+	if (pluginTypes.find(ptNullDataModel) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerDataModel(std::shared_ptr<NullDataModel>(new NullDataModel));
+	}
+
+#ifdef WITH_INV_SCXML
+	if (pluginTypes.find(ptUSCXMLInvoker) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerInvoker(std::shared_ptr<USCXMLInvoker>(new USCXMLInvoker));
+	}
+#endif
+
+#ifdef WITH_INV_DIRMON
+	if (pluginTypes.find(ptDirMonInvoker) != pluginTypes.end() || pluginTypes.find(ptALL) != pluginTypes.end()) {
+		registerInvoker(std::shared_ptr<DirMonInvoker>(new DirMonInvoker));
+	}
+#endif
+}
+
+void Factory::registerIOProcessor(std::shared_ptr<IOProcessorImpl> ioProcessor) {
 	std::list<std::string> names = ioProcessor->getNames();
 	std::list<std::string>::iterator nameIter = names.begin();
 	if (nameIter != names.end()) {
@@ -304,7 +359,7 @@ void Factory::registerIOProcessor(IOProcessorImpl* ioProcessor) {
 	}
 }
 
-void Factory::registerDataModel(DataModelImpl* dataModel) {
+void Factory::registerDataModel(std::shared_ptr<DataModelImpl> dataModel) {
 	std::list<std::string> names = dataModel->getNames();
 	std::list<std::string>::iterator nameIter = names.begin();
 	if (nameIter != names.end()) {
@@ -317,7 +372,7 @@ void Factory::registerDataModel(DataModelImpl* dataModel) {
 	}
 }
 
-void Factory::registerInvoker(InvokerImpl* invoker) {
+void Factory::registerInvoker(std::shared_ptr<InvokerImpl> invoker) {
 	std::list<std::string> names = invoker->getNames();
 	std::list<std::string>::iterator nameIter = names.begin();
 	if (nameIter != names.end()) {
@@ -330,7 +385,7 @@ void Factory::registerInvoker(InvokerImpl* invoker) {
 	}
 }
 
-void Factory::registerExecutableContent(ExecutableContentImpl* executableContent) {
+void Factory::registerExecutableContent(std::shared_ptr<ExecutableContentImpl> executableContent) {
 	std::string localName = executableContent->getLocalName();
 	std::string nameSpace = executableContent->getNamespace();
 	_executableContent[std::make_pair(localName, nameSpace)] = executableContent;
@@ -342,10 +397,8 @@ std::map<std::string, IOProcessorImpl*> Factory::getIOProcessors() {
 		ioProcs = _parentFactory->getIOProcessors();
 	}
 
-	std::map<std::string, IOProcessorImpl*>::iterator ioProcIter = _ioProcessors.begin();
-	while(ioProcIter != _ioProcessors.end()) {
-		ioProcs.insert(std::make_pair(ioProcIter->first, ioProcIter->second));
-		ioProcIter++;
+	for (const auto &ioProcIter : _ioProcessors) {
+		ioProcs.insert(std::make_pair(ioProcIter.first, ioProcIter.second.get()));
 	}
 
 	return ioProcs;
@@ -537,31 +590,17 @@ size_t DataModelImpl::replaceExpressions(std::string& content) {
 	return replacements;
 }
 
-
-Factory* Factory::getInstance() {
-#if 0
-	// this needs to be here as some plugins use xercesc, now in X::X in DOM.h
-	try {
-		::xercesc_3_1::XMLPlatformUtils::Initialize();
-	} catch (const XERCESC_NS::XMLException& toCatch) {
-		ERROR_PLATFORM_THROW("Cannot initialize XercesC: " + X(toCatch.getMessage()).str());
-	}
-#endif
-	if (_instance == NULL) {
-		_instance = new Factory(Factory::_defaultPluginPath);
-	}
-	return _instance;
+Factory & Factory::getInstance()
+{
+	static Factory instance(Factory::_defaultPluginPath);
+	return instance;
 }
 
-//void EventHandlerImpl::returnErrorExecution(const std::string& cause) {
-//	ERROR_EXECUTION(exc, cause);
-//	returnEvent(exc);
-//}
-//
-//void EventHandlerImpl::returnErrorCommunication(const std::string& cause) {
-//	ERROR_COMMUNICATION(exc, cause);
-//	returnEvent(exc);
-//}
+void Factory::cleanup()
+{
+	HTTPServer::cleanup();
+	libevent_global_shutdown();
+}
 
 void IOProcessorImpl::eventToSCXML(Event& event,
                                    const std::string& type,

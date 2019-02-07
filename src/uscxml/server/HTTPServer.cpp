@@ -67,7 +67,7 @@ HTTPServer::HTTPServer(unsigned short port, unsigned short wsPort, SSLConfig* ss
 	_evws = evws_new(_base);
 	_thread = NULL;
 	_httpHandle = NULL;
-
+	
 #ifdef _WIN32
 	_wsHandle = NULL;
 #else
@@ -163,15 +163,39 @@ HTTPServer::HTTPServer(unsigned short port, unsigned short wsPort, SSLConfig* ss
 
 HTTPServer::~HTTPServer() {
 	_isRunning = false;
-	_thread->join();
-	delete _thread;
+	if (_base) {
+		event_base_loopbreak(_base);
+	}
+	if (_thread) {
+		_thread->join();
+		delete _thread;
+		_thread = nullptr;
+	}
+	if (_evws) {
+		
+		if (_evws->listener) {
+			evconnlistener_free(_evws->listener);
+			_evws->listener = nullptr;
+		}
+		
+		evws_free(_evws);
+		_evws = nullptr;
+	} 
+	if (_http) {
+		evhttp_free(_http);
+		_http = nullptr;
+	}
+	if (_base) {
+		event_base_free(_base);
+		_base = nullptr;
+	}
 }
 
 HTTPServer* HTTPServer::_instance = NULL;
 std::recursive_mutex HTTPServer::_instanceMutex;
 
 HTTPServer* HTTPServer::getInstance(unsigned short port, unsigned short wsPort, SSLConfig* sslConf) {
-//	std::lock_guard<std::recursive_mutex> lock(_instanceMutex);
+	std::lock_guard<std::recursive_mutex> lock(_instanceMutex);
 	if (_instance == NULL) {
 #ifdef _WIN32
 		WSADATA wsaData;
@@ -667,6 +691,17 @@ void HTTPServer::unregisterServlet(WebSocketServlet* servlet) {
 			break;
 		}
 		servletIter++;
+	}
+}
+
+void HTTPServer::cleanup()
+{
+	if (_instance) {
+		delete _instance;
+		_instance = nullptr;
+#ifdef _WIN32
+		// WSACleanup(); ??
+#endif
 	}
 }
 

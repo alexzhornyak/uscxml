@@ -270,13 +270,12 @@ protected:
 	URLFetcher();
 	~URLFetcher();
 
-	static URLFetcher* _instance;
 	static URLFetcher* getInstance();
 
 	static void run(void* instance);
 	void perform();
 
-	std::thread* _thread;
+	std::thread* _thread = nullptr;
 	std::condition_variable_any _condVar;
 	std::recursive_mutex _mutex;
 	bool _isStarted;

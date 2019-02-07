@@ -2839,10 +2839,8 @@ std::string ChartToPromela::dataToAssignments(const std::string& prefix, const D
 			retVal << dataToAssignments(prefix + "." + cIter->first, cIter->second);
 		}
 	} else if (data.array.size() > 0) {
-		size_t index = 0;
-		for(std::list<Data>::const_iterator aIter = data.array.begin(); aIter != data.array.end(); aIter++) {
-			retVal << dataToAssignments(prefix + "[" + toStr(index) + "]", *aIter);
-			index++;
+		for(auto aIter = data.array.begin(); aIter != data.array.end(); aIter++) {
+			retVal << dataToAssignments(prefix + "[" + toStr(aIter->first) + "]", aIter->second);
 		}
 	}
 	return retVal.str();

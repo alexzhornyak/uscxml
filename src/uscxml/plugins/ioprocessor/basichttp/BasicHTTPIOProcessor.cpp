@@ -104,8 +104,9 @@ Data BasicHTTPIOProcessor::getDataModelVariables() {
 
 	std::list<std::string> pathComps = url.pathComponents();
 	std::list<std::string>::const_iterator pathCompIter = pathComps.begin();
+	int iCount = 0;
 	while(pathCompIter != pathComps.end()) {
-		data.compound["pathComponents"].array.push_back(Data(*pathCompIter, Data::VERBATIM));
+		data.compound["pathComponents"].array.insert(std::make_pair(++iCount, Data(*pathCompIter, Data::VERBATIM)));
 		pathCompIter++;
 	}
 

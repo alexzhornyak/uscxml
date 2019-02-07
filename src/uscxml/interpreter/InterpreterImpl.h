@@ -215,7 +215,7 @@ public:
 	}
 
 	virtual ExecutableContent createExecutableContent(const std::string& localName, const std::string& nameSpace) {
-		return Factory::getInstance()->createExecutableContent(localName, nameSpace, this);
+		return Factory::getInstance().createExecutableContent(localName, nameSpace, this);
 	}
 
 

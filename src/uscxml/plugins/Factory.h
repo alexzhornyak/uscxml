@@ -31,6 +31,7 @@
 #include <memory>
 #include <set>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <limits>
 
@@ -50,10 +51,33 @@ public:
 	Factory(Factory* parentFactory);
 	Factory(const std::string& pluginPath, Factory* parentFactory);
 
-	void registerIOProcessor(IOProcessorImpl* ioProcessor);
-	void registerDataModel(DataModelImpl* dataModel);
-	void registerInvoker(InvokerImpl* invoker);
-	void registerExecutableContent(ExecutableContentImpl* executableContent);
+	/* 
+		Previously 'registerPlugins' method was in constructor and all ioprocessors, datamodels etc were invoked
+		Sometimes we do not want to create all of them. That's why we let user to decide, when to initialize them.
+		You can call either 'registerPlugins' to register all of available or to call 'register' separately
+	*/
+	void registerPlugins();
+
+	enum PluginType {
+		ptSCXMLIOProcessor,
+		ptBasicHTTPIOProcessor,
+		ptV8DataModel,
+		ptJSCDataModel,
+		ptLuaDataModel,
+		ptC89DataModel,
+		ptPromelaDataModel,
+		ptNullDataModel,
+		ptUSCXMLInvoker,
+		ptDirMonInvoker,
+		ptALL
+	};
+
+	void registerCustomPlugins(const std::set<PluginType> &pluginTypes);
+
+	void registerIOProcessor(std::shared_ptr<IOProcessorImpl> ioProcessor);
+	void registerDataModel(std::shared_ptr<DataModelImpl> dataModel);
+	void registerInvoker(std::shared_ptr<InvokerImpl> invoker);
+	void registerExecutableContent(std::shared_ptr<ExecutableContentImpl> executableContent);
 
 	std::shared_ptr<DataModelImpl> createDataModel(const std::string& type, DataModelCallbacks* callbacks);
 	std::shared_ptr<IOProcessorImpl> createIOProcessor(const std::string& type, IOProcessorCallbacks* callbacks);
@@ -69,27 +93,27 @@ public:
 
 	void listComponents();
 
-	static Factory* getInstance();
+	static Factory& getInstance();
+
+	static void cleanup();
 
 	static void setDefaultPluginPath(const std::string& path);
 	static std::string getDefaultPluginPath();
 
 protected:
-	std::map<std::string, DataModelImpl*> _dataModels;
-	std::map<std::string, std::string> _dataModelAliases;
-	std::map<std::string, IOProcessorImpl*> _ioProcessors;
-	std::map<std::string, std::string> _ioProcessorAliases;
-	std::map<std::string, InvokerImpl*> _invokers;
-	std::map<std::string, std::string> _invokerAliases;
-	std::map<std::pair<std::string, std::string>, ExecutableContentImpl*> _executableContent;
+	std::unordered_map<std::string, std::shared_ptr<DataModelImpl>> _dataModels;
+	std::unordered_map<std::string, std::string> _dataModelAliases;
+	std::unordered_map<std::string, std::shared_ptr<IOProcessorImpl>> _ioProcessors;
+	std::unordered_map<std::string, std::string> _ioProcessorAliases;
+	std::unordered_map<std::string, std::shared_ptr<InvokerImpl>> _invokers;
+	std::unordered_map<std::string, std::string> _invokerAliases;
+	std::map<std::pair<std::string, std::string>, std::shared_ptr<ExecutableContentImpl>> _executableContent;
 
 
 #ifdef BUILD_AS_PLUGINS
 	pluma::Pluma pluma;
 #endif
-
-	void registerPlugins();
-
+	
 	Factory(const std::string&);
 	~Factory();
 	Factory* _parentFactory = NULL;

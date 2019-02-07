@@ -4,7 +4,6 @@
 #include "uscxml/transform/ChartToC.h"
 #include "uscxml/transform/ChartToJava.h"
 #include "uscxml/transform/ChartToVHDL.h"
-#include "uscxml/transform/ChartToPromela.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -39,7 +38,6 @@ void printUsageAndExit(const char* progName) {
 	printf("\n");
 	printf("Options\n");
 	printf("\t-t c           : convert to C program\n");
-	printf("\t-t pml         : convert to spin/promela program\n");
     printf("\t-t vhdl        : convert to VHDL hardware description\n");
     printf("\t-t java        : convert to Java classes\n");
 	printf("\t-t flat        : flatten to SCXML state-machine\n");
@@ -188,7 +186,6 @@ int main(int argc, char** argv) {
 
 	if (outType != "flat" &&
 	        outType != "scxml" &&
-	        outType != "pml" &&
 	        outType != "c" &&
             outType != "vhdl" &&
             outType != "java" &&
@@ -313,20 +310,20 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (outType == "pml") {
-            transformer = ChartToPromela::transform(interpreter);
-            transformer.setExtensions(extensions);
-            transformer.setOptions(options);
-            
-            if (outputFile.size() == 0 || outputFile == "-") {
-                transformer.writeTo(std::cout);
-            } else {
-                std::ofstream outStream;
-                outStream.open(outputFile.c_str());
-                transformer.writeTo(outStream);
-                outStream.close();
-            }
-		}
+		//if (outType == "pml") {
+  //          transformer = ChartToPromela::transform(interpreter);
+  //          transformer.setExtensions(extensions);
+  //          transformer.setOptions(options);
+  //          
+  //          if (outputFile.size() == 0 || outputFile == "-") {
+  //              transformer.writeTo(std::cout);
+  //          } else {
+  //              std::ofstream outStream;
+  //              outStream.open(outputFile.c_str());
+  //              transformer.writeTo(outStream);
+  //              outStream.close();
+  //          }
+		//}
 
 //		if (outType == "tex") {
 //			if (outputFile.size() == 0 || outputFile == "-") {

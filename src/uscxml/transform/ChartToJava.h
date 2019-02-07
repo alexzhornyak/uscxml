@@ -24,9 +24,6 @@
 #include "ChartToC.h"
 #include "uscxml/util/DOM.h"
 
-#include "promela/PromelaInlines.h"
-#include "promela/PromelaCodeAnalyzer.h"
-
 #include <ostream>
 
 namespace uscxml {

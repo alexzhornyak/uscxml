@@ -887,8 +887,11 @@ void URLFetcher::stop() {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
 	if (_isStarted) {
 		_isStarted = false;
-		_thread->join();
-		delete _thread;
+		if (_thread) {
+			_thread->join();
+			delete _thread;
+			_thread = nullptr;
+		}		
 	}
 }
 
@@ -901,7 +904,7 @@ void URLFetcher::run(void* instance) {
 }
 
 void URLFetcher::perform() {
-
+	
 	CURLMsg *msg; /* for picking up messages with the transfer status */
 	int msgsLeft; /* how many messages are left */
 	int stillRunning;
@@ -1027,13 +1030,9 @@ void URLFetcher::perform() {
 	} while(stillRunning && _isStarted);
 }
 
-URLFetcher* URLFetcher::_instance = NULL;
-
 URLFetcher* URLFetcher::getInstance() {
-	if (_instance == NULL) {
-		_instance = new URLFetcher();
-	}
-	return _instance;
+	static URLFetcher instance;	
+	return &instance;
 }
 
 
