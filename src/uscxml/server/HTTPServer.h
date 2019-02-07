@@ -181,7 +181,6 @@ private:
 
 	static HTTPServer* _instance;
 
-	static std::recursive_mutex _instanceMutex;
 	std::thread* _thread = nullptr;
 	std::recursive_mutex _mutex;
 	bool _isRunning;

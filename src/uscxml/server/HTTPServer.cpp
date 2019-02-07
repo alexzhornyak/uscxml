@@ -192,10 +192,8 @@ HTTPServer::~HTTPServer() {
 }
 
 HTTPServer* HTTPServer::_instance = NULL;
-std::recursive_mutex HTTPServer::_instanceMutex;
 
 HTTPServer* HTTPServer::getInstance(unsigned short port, unsigned short wsPort, SSLConfig* sslConf) {
-	std::lock_guard<std::recursive_mutex> lock(_instanceMutex);
 	if (_instance == NULL) {
 #ifdef _WIN32
 		WSADATA wsaData;
