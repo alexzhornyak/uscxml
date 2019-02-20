@@ -34,14 +34,20 @@ public:
 	}
 
 	virtual void push(const T& elem) {
-		std::lock_guard<std::mutex> lock(_mutex);
-		_queue.push_back(elem);
+		{
+			std::lock_guard<std::mutex> lock(_mutex);
+			_queue.push_back(elem);
+		}
+		
 		_cond.notify_all();
 	}
 
 	virtual void push_front(const T& elem) {
-		std::lock_guard<std::mutex> lock(_mutex);
-		_queue.push_front(elem);
+		{
+			std::lock_guard<std::mutex> lock(_mutex);
+			_queue.push_front(elem);
+		}
+		
 		_cond.notify_all();
 	}
 

@@ -266,10 +266,13 @@ public:
 	void start();
 	void stop();
 
+	static void cleanup();
+
 protected:
 	URLFetcher();
 	~URLFetcher();
 
+	static URLFetcher* _instance;
 	static URLFetcher* getInstance();
 
 	static void run(void* instance);
@@ -278,12 +281,13 @@ protected:
 	std::thread* _thread = nullptr;
 	std::condition_variable_any _condVar;
 	std::recursive_mutex _mutex;
-	bool _isStarted;
+	bool _isStarted = false;
+	bool _markedToDestroy = false;
 
 	std::map<void*, URL> _handlesToURLs;
 	std::map<void*, void*> _handlesToHeaders;
-	void* _multiHandle = NULL;
-	char* _envProxy = NULL;
+	void* _multiHandle = nullptr;
+	char* _envProxy = nullptr;
 
 };
 

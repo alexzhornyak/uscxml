@@ -123,8 +123,11 @@ void USCXMLInvoker::run(void* instance) {
 
 	InterpreterState state = USCXML_UNDEF;
 	while(state != USCXML_FINISHED) {
-		std::lock_guard<std::recursive_mutex> lock(INSTANCE->_mutex);
-		state = INSTANCE->_invokedInterpreter.step();
+		{
+			std::lock_guard<std::recursive_mutex> lock(INSTANCE->_mutex);
+			state = INSTANCE->_invokedInterpreter.step();
+		}
+		
 		INSTANCE->_cond.notify_all();
 	}
 

@@ -197,7 +197,9 @@ HTTPServer* HTTPServer::getInstance(unsigned short port, unsigned short wsPort, 
 	if (_instance == NULL) {
 #ifdef _WIN32
 		WSADATA wsaData;
-		WSAStartup(MAKEWORD(2, 2), &wsaData);
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData)!=0) {
+			LOGD(USCXML_ERROR) << "WSAStartup failed:" << WSAGetLastError();
+		}
 #endif
 #ifndef _WIN32
 		evthread_use_pthreads();
@@ -697,9 +699,6 @@ void HTTPServer::cleanup()
 	if (_instance) {
 		delete _instance;
 		_instance = nullptr;
-#ifdef _WIN32
-		// WSACleanup(); ??
-#endif
 	}
 }
 

@@ -821,8 +821,6 @@ void URLFetcher::fetchURL(URL& url) {
 			struct curl_slist* headers = NULL;
 			std::map<std::string, std::string>::iterator paramIter = url._impl->_outHeader.begin();
 			while(paramIter != url._impl->_outHeader.end()) {
-				//				char* key = curl_easy_escape(handle, paramIter->first.c_str(), paramIter->first.length());
-				//				char* value = curl_easy_escape(handle, paramIter->second.c_str(), paramIter->second.length());
 
 				const char* value = paramIter->second.c_str();
 
@@ -830,8 +828,7 @@ void URLFetcher::fetchURL(URL& url) {
 				sprintf(header,"%s: %s", paramIter->first.c_str(), value);
 				headers = curl_slist_append(headers, header);
 				free(header);
-				//				curl_free(key);
-				//				curl_free(value);
+
 				paramIter++;
 			}
 
@@ -841,9 +838,7 @@ void URLFetcher::fetchURL(URL& url) {
 
 			(curlError = curl_easy_setopt(handle, CURLOPT_HTTPHEADER, headers)) == CURLE_OK ||
 			LOGD(USCXML_ERROR) << "Cannot headers for " << std::string(url) << ": " << curl_easy_strerror(curlError) << std::endl;
-
-//			curl_slist_free_all(headers);
-
+			
 
 		} else if (url._impl->_requestType == URLRequestType::GET) {
 			(curlError = curl_easy_setopt(handle, CURLOPT_HTTPGET, 1)) == CURLE_OK ||
@@ -884,15 +879,21 @@ void URLFetcher::start() {
 }
 
 void URLFetcher::stop() {
-	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	if (_isStarted) {
-		_isStarted = false;
-		if (_thread) {
-			_thread->join();
-			delete _thread;
-			_thread = nullptr;
-		}		
+	{
+		std::lock_guard<std::recursive_mutex> lock(_mutex);
+		if (_isStarted) {
+			_isStarted = false;
+		}
+		_markedToDestroy = true;
 	}
+	
+	_condVar.notify_all();	
+	
+	if (_thread) {
+		_thread->join();
+		delete _thread;
+		_thread = nullptr;
+	}		
 }
 
 void URLFetcher::run(void* instance) {
@@ -900,7 +901,9 @@ void URLFetcher::run(void* instance) {
 	while(fetcher->_isStarted) {
 		fetcher->perform();
 	}
-	LOGD(USCXML_ERROR) << "URLFetcher thread stopped!" << std::endl;
+	if (!fetcher->_markedToDestroy) {
+		LOGD(USCXML_ERROR) << "URLFetcher thread unpredictably stopped!" << std::endl;
+	}	
 }
 
 void URLFetcher::perform() {
@@ -1030,9 +1033,20 @@ void URLFetcher::perform() {
 	} while(stillRunning && _isStarted);
 }
 
+URLFetcher* URLFetcher::_instance = nullptr;
+
 URLFetcher* URLFetcher::getInstance() {
-	static URLFetcher instance;	
-	return &instance;
+	if (_instance == nullptr) {
+		_instance = new URLFetcher();
+	}
+	return _instance;
+}
+
+void URLFetcher::cleanup() {
+	if (_instance) {
+		delete _instance;
+		_instance = nullptr;
+	}
 }
 
 

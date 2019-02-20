@@ -599,6 +599,9 @@ Factory & Factory::getInstance()
 void Factory::cleanup()
 {
 	HTTPServer::cleanup();
+	
+	URLFetcher::cleanup();
+	
 	libevent_global_shutdown();
 }
 

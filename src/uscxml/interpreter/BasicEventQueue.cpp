@@ -78,8 +78,10 @@ Event BasicEventQueue::dequeue(size_t blockMs) {
 }
 
 void BasicEventQueue::enqueue(const Event& event) {
-	std::lock_guard<std::recursive_mutex> lock(_mutex);
-	_queue.push_back(event);
+	{
+		std::lock_guard<std::recursive_mutex> lock(_mutex);
+		_queue.push_back(event);
+	}	
 	_cond.notify_all();
 }
 
