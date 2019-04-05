@@ -478,9 +478,6 @@ void BasicContentExecutor::invoke(XERCESC_NS::DOMElement* element) {
 		// content
 		std::list<DOMElement*> contents = DOMUtils::filterChildElements(XML_PREFIX(element).str() + "content", element);
 		if (contents.size() > 0) {
-#if 0
-			invokeEvent.data.node = contents.front();
-#else
 			// test530
 			Data d = elementAsData(contents.front());
 			if (d.type == Data::INTERPRETED && d.atom.size() > 0) {
@@ -489,7 +486,6 @@ void BasicContentExecutor::invoke(XERCESC_NS::DOMElement* element) {
 			} else {
 				invokeEvent.data = d;
 			}
-#endif
 		}
 	} catch (ErrorEvent e) {
 		ERROR_EXECUTION_RETHROW(e, "Syntax error in invoke element content", element);

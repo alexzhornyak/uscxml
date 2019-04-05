@@ -243,7 +243,7 @@ public:
 	virtual void addExtension(DataModelExtension* ext);
 
 protected:
-	DataModelCallbacks* _callbacks;
+	DataModelCallbacks* _callbacks = nullptr;
 };
 
 }

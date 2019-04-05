@@ -100,7 +100,7 @@ protected:
 
 	static int luaInFunction(lua_State * l);
 
-	lua_State* _luaState;
+	lua_State* _luaState = nullptr;
 };
 
 #ifdef BUILD_AS_PLUGINS

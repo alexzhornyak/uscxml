@@ -179,7 +179,8 @@ luabridge::LuaRef LuaDataModel::getDataAsLua(lua_State* _luaState, const Data& d
 }
 
 LuaDataModel::LuaDataModel() {
-	_luaState = NULL;
+	_luaState = nullptr;
+	_callbacks = nullptr;
 }
 
 int LuaDataModel::luaInFunction(lua_State * l) {
@@ -214,31 +215,33 @@ void LuaDataModel::setup() {
 	luabridge::getGlobalNamespace(_luaState).beginClass<LuaDataModel>("DataModel").endClass();
 	luabridge::setGlobal(_luaState, this, "__datamodel");
 
-	luabridge::getGlobalNamespace(_luaState).addCFunction("In", luaInFunction);
+	// an option to create raw datamodel for custom needs
+	if (_callbacks) {
+		luabridge::getGlobalNamespace(_luaState).addCFunction("In", luaInFunction);
 
-	luabridge::LuaRef ioProcTable = luabridge::newTable(_luaState);
-	std::map<std::string, IOProcessor> ioProcs = _callbacks->getIOProcessors();
-	std::map<std::string, IOProcessor>::const_iterator ioProcIter = ioProcs.begin();
-	while(ioProcIter != ioProcs.end()) {
-		Data ioProcData = ioProcIter->second.getDataModelVariables();
-		ioProcTable[ioProcIter->first] = getDataAsLua(_luaState, ioProcData);
-		ioProcIter++;
+		luabridge::LuaRef ioProcTable = luabridge::newTable(_luaState);
+		std::map<std::string, IOProcessor> ioProcs = _callbacks->getIOProcessors();
+		std::map<std::string, IOProcessor>::const_iterator ioProcIter = ioProcs.begin();
+		while (ioProcIter != ioProcs.end()) {
+			Data ioProcData = ioProcIter->second.getDataModelVariables();
+			ioProcTable[ioProcIter->first] = getDataAsLua(_luaState, ioProcData);
+			ioProcIter++;
+		}
+		luabridge::setGlobal(_luaState, ioProcTable, "_ioprocessors");
+
+		luabridge::LuaRef invTable = luabridge::newTable(_luaState);
+		std::map<std::string, Invoker> invokers = _callbacks->getInvokers();
+		std::map<std::string, Invoker>::const_iterator invIter = invokers.begin();
+		while (invIter != invokers.end()) {
+			Data invData = invIter->second.getDataModelVariables();
+			invTable[invIter->first] = getDataAsLua(_luaState, invData);
+			invIter++;
+		}
+		luabridge::setGlobal(_luaState, invTable, "_invokers");
+
+		luabridge::setGlobal(_luaState, _callbacks->getName(), "_name");
+		luabridge::setGlobal(_luaState, _callbacks->getSessionId(), "_sessionid");
 	}
-	luabridge::setGlobal(_luaState, ioProcTable, "_ioprocessors");
-
-	luabridge::LuaRef invTable = luabridge::newTable(_luaState);
-	std::map<std::string, Invoker> invokers = _callbacks->getInvokers();
-	std::map<std::string, Invoker>::const_iterator invIter = invokers.begin();
-	while(invIter != invokers.end()) {
-		Data invData = invIter->second.getDataModelVariables();
-		invTable[invIter->first] = getDataAsLua(_luaState, invData);
-		invIter++;
-	}
-	luabridge::setGlobal(_luaState, invTable, "_invokers");
-
-	luabridge::setGlobal(_luaState, _callbacks->getName(), "_name");
-	luabridge::setGlobal(_luaState, _callbacks->getSessionId(), "_sessionid");
-
 }
 
 LuaDataModel::~LuaDataModel() {
@@ -253,7 +256,6 @@ void LuaDataModel::addExtension(DataModelExtension* ext) {
 void LuaDataModel::setEvent(const Event& event) {
 	luabridge::LuaRef luaEvent(_luaState);
 	luaEvent = luabridge::newTable(_luaState);
-
 
 	luaEvent["name"] = event.name;
 	if (event.raw.size() > 0)

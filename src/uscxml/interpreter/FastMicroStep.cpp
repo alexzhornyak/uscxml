@@ -730,7 +730,7 @@ InterpreterState FastMicroStep::step(size_t blockMs) {
 					try {
 						_callbacks->invoke(*invIter);
 					} catch (ErrorEvent e) {
-						LOG(_callbacks->getLogger(), USCXML_WARN) << e;
+						LOG(_callbacks->getLogger(), USCXML_ERROR) << e;
 						// TODO: Shall we deliver the event into the interpreter runtime?
 					} catch (...) {
 					}
