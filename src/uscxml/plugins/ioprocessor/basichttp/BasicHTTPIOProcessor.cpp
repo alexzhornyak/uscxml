@@ -28,6 +28,7 @@
 #include <event2/keyvalq_struct.h>
 
 #include <string.h>
+#include <iostream>
 
 #include "uscxml/interpreter/Logging.h"
 #include <boost/algorithm/string.hpp>
@@ -117,35 +118,32 @@ bool BasicHTTPIOProcessor::requestFromHTTP(const HTTPServer::Request& req) {
 	Event event = req;
 	event.eventType = Event::EXTERNAL;
 
-//	std::cout << req.raw << std::endl;
-
 	/**
 	 * If a single instance of the parameter '_scxmleventname' is present, the
 	 * SCXML Processor must use its value as the name of the SCXML event that it
 	 * raises.
 	 */
 
+	const Data& dataContent = req.data.at("content");
+
 	{
 		// if we sent ourself an event it will end up here
 		// this will call the const subscript operator
-		if (req.data.at("content").hasKey("_scxmleventname")) {
+		if (dataContent.hasKey("_scxmleventname")) {
 			event.name = req.data.at("content").at("_scxmleventname").atom;
-		}
-		if (req.data.at("content").hasKey("content")) {
-			event.data.atom = req.data.at("content").at("content").atom;
 		}
 	}
 
+	// user must receive empty '_event.data.content' if there is nothing except '_scxmleventname'
+	if (event.data.hasKey("content")) {
+		event.data["content"].clear();
+	}
+
 	// if we used wget, it will end up here - unify?
-	if (req.data.hasKey("content")) {
-		const Data& data = req.data["content"];
-		for(std::map<std::string, Data>::const_iterator compIter = data.compound.begin();
-		        compIter!= data.compound.end(); compIter++) {
-			if (compIter->first == "content") {
-				event.data.atom = compIter->second.atom;
-			} else {
-				event.data[compIter->first] = compIter->second;
-			}
+	for (std::map<std::string, Data>::const_iterator compIter = dataContent.compound.begin();
+	compIter != dataContent.compound.end(); compIter++) {
+		if (compIter->first != "_scxmleventname") {
+			event.data[compIter->first] = Data::fromJSON(compIter->second.atom);
 		}
 	}
 
@@ -210,7 +208,7 @@ void BasicHTTPIOProcessor::eventFromSCXML(const std::string& target, const Event
 		while (namelistIter != event.namelist.end()) {
 			char* keyCStr = evhttp_encode_uri(namelistIter->first.c_str());
 			// this is simplified - Data might be more elaborate than a simple string atom
-			char* valueCStr = evhttp_encode_uri(namelistIter->second.atom.c_str());
+			char* valueCStr = evhttp_encode_uri(Data::toJSON(namelistIter->second).c_str());
 			kvps << kvpSeperator << keyCStr << "=" << valueCStr;
 			free(keyCStr);
 			free(valueCStr);
@@ -226,7 +224,7 @@ void BasicHTTPIOProcessor::eventFromSCXML(const std::string& target, const Event
 		while (paramIter != event.params.end()) {
 			char* keyCStr = evhttp_encode_uri(paramIter->first.c_str());
 			// this is simplified - Data might be more elaborate than a simple string atom
-			char* valueCStr = evhttp_encode_uri(paramIter->second.atom.c_str());
+			char* valueCStr = evhttp_encode_uri(Data::toJSON(paramIter->second).c_str());
 			kvps << kvpSeperator << keyCStr << "=" << valueCStr;
 			free(keyCStr);
 			free(valueCStr);
@@ -240,9 +238,10 @@ void BasicHTTPIOProcessor::eventFromSCXML(const std::string& target, const Event
 	char* keyCStr = evhttp_encode_uri("content");
 	if (!event.data.empty()) {
 		char* valueCStr = NULL;
-		if (event.data.atom.length() || event.data.array.size() || event.data.compound.size()) {
+		if (!event.data.atom.empty() || event.data.array.size() || event.data.compound.size()) {
 			valueCStr = evhttp_encode_uri(Data::toJSON(event.data).c_str());
-		} else if(event.data.node) {
+		} 
+		else if(event.data.node) {
 			std::stringstream xmlStream;
 			xmlStream << event.data.node;
 			valueCStr = evhttp_encode_uri(xmlStream.str().c_str());

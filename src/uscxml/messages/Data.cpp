@@ -17,6 +17,8 @@
  *  @endcond
  */
 
+#include <vector>
+
 #include "uscxml/messages/Data.h"
 #include "uscxml/messages/Blob.h"
 
@@ -79,12 +81,23 @@ Data Data::fromJSON(const std::string& jsonString) {
 	if (trimmed.length() == 0)
 		return data;
 
-	if (trimmed.find_first_of("{[") != 0)
+	if (trimmed.find_first_of("{[") != 0) {
+		/* 24.04.2019 */
+		// What about the next example:
+		// Data d;
+		// d.atom = 5;
+		// std::string tmp = d.toJSON();
+		// Data d2 = fromJSON(tmp);
+		// we expect 'd==d2', so return 'jsonString' as is
+		data.atom = jsonString;
+		
 		return data;
+	}
+		
 
 	jsmn_parser p;
 
-	jsmntok_t* t = NULL;
+	std::vector<jsmntok_t> t;
 
 	// we do not know the number of tokens beforehand, start with something sensible and increase
 	int rv;
@@ -94,49 +107,35 @@ Data Data::fromJSON(const std::string& jsonString) {
 
 		frac /= 2;
 		int nrTokens = trimmed.size() / frac;
-		if (t != NULL) {
-			free(t);
-//      LOG(USCXML_INFO) << "Increasing JSON length to token ratio to 1/" << frac;
-		}
-		t = (jsmntok_t*)malloc((nrTokens + 1) * sizeof(jsmntok_t));
-		if (t == NULL) {
-			ERROR_PLATFORM_THROW("Cannot parse JSON, ran out of memory!");
-		}
-		memset(t, 0, (nrTokens + 1) * sizeof(jsmntok_t));
-
-		rv = jsmn_parse(&p, trimmed.c_str(), t, nrTokens);
+		t.clear();
+		t.resize((nrTokens + 1) * sizeof(jsmntok_t));
+		memset(&t[0], 0, t.size() * sizeof(t[0]));
+		rv = jsmn_parse(&p, trimmed.c_str(), t.data(), nrTokens);
 	} while (rv == JSMN_ERROR_NOMEM && frac > 1);
 
 	if (rv != 0) {
 		switch (rv) {
 		case JSMN_ERROR_NOMEM: {
-			ERROR_PLATFORM_THROW("Cannot parse JSON, not enough tokens were provided!");
+			ERROR_PLATFORM_THROW("Cannot parse JSON, not enough tokens were provided! Data:[" + trimmed + "]"); 
 			break;
 		}
 		case JSMN_ERROR_INVAL: {
-			ERROR_PLATFORM_THROW("Cannot parse JSON, invalid character inside JSON string!");
+			ERROR_PLATFORM_THROW("Cannot parse JSON, invalid character inside JSON string! Data:[" + trimmed + "]");
 			break;
 		}
 		case JSMN_ERROR_PART: {
-			ERROR_PLATFORM_THROW("Cannot parse JSON, the string is not a full JSON packet, more bytes expected!");
+			ERROR_PLATFORM_THROW("Cannot parse JSON, the string is not a full JSON packet, more bytes expected! Data:[" + trimmed + "]");
 			break;
 		}
 		default:
 			break;
 		}
-		free(t);
+		t.clear();
 		return data;
 	}
 
-	if ((size_t)t[0].end != trimmed.length())
+	if (t.size()==0 || static_cast<size_t>(t[0].end) != trimmed.length())
 		return data;
-
-//	jsmntok_t* token = t;
-//	while(token->end) {
-//		std::cout << trimmed.substr(token->start, token->end - token->start) << std::endl;
-//		std::cout << "------" << std::endl;
-//		token++;
-//	}
 
 	std::list<Data*> dataStack;
 	std::list<jsmntok_t> tokenStack;
@@ -145,18 +144,11 @@ Data Data::fromJSON(const std::string& jsonString) {
 	size_t currTok = 0;
 	int index = 0;
 	do {
-		// used for debugging
-//		jsmntok_t t2 = t[currTok];
-//		std::string value = trimmed.substr(t[currTok].start, t[currTok].end - t[currTok].start);
 		switch (t[currTok].type) {
 		case JSMN_STRING:
 			dataStack.back()->type = Data::VERBATIM;
 		case JSMN_PRIMITIVE: {
 			std::string value = trimmed.substr(t[currTok].start, t[currTok].end - t[currTok].start);
-//			if (dataStack.back()->type == Data::VERBATIM) {
-//				boost::replace_all(value, "\\\"", "\"");
-//				boost::replace_all(value, "\\n", "\n");
-//			}
 			value = jsonUnescape(value);
 			dataStack.back()->atom = value;
 			dataStack.pop_back();
@@ -169,9 +161,6 @@ Data Data::fromJSON(const std::string& jsonString) {
 			currTok++;
 			break;
 		}
-		// used for debugging
-//		t2 = t[currTok];
-//		value = trimmed.substr(t[currTok].start, t[currTok].end - t[currTok].start);
 
 		// there are no more tokens
 		if (t[currTok].end == 0 || tokenStack.empty())
@@ -198,7 +187,7 @@ Data Data::fromJSON(const std::string& jsonString) {
 
 	} while (true);
 
-	free(t);
+	t.clear();
 	return data;
 }
 
