@@ -276,16 +276,9 @@ void BasicContentExecutor::processLog(XERCESC_NS::DOMElement* content) {
 	std::string expr = ATTR(content, kXMLCharExpr);
 
 	Data d = _callbacks->evalAsData(expr);
-#if 0
-	if (label.size() > 0) {
-		_callbacks->getLogger().log(USCXML_LOG) << label << ": ";
-	}
-	_callbacks->getLogger().log(USCXML_LOG) << d << std::endl;
-#else
+
 	// see issue113
 	_callbacks->getLogger().log(USCXML_LOG) << (label.size() > 0 ? label + ": " : "") << d << std::endl;
-#endif
-
 }
 
 void BasicContentExecutor::processScript(XERCESC_NS::DOMElement* content) {
@@ -294,7 +287,7 @@ void BasicContentExecutor::processScript(XERCESC_NS::DOMElement* content) {
 	std::string scriptContent("");
 
 	DOMNode *node = content->getFirstChild();
-	if (node->getNodeType() == DOMNode::TEXT_NODE) {
+	if (node && node->getNodeType() == DOMNode::TEXT_NODE) {
 		char *cstr = XMLString::transcode(node->getNodeValue());
 		scriptContent = cstr;
 		XMLString::release(&cstr);
@@ -600,16 +593,6 @@ void BasicContentExecutor::processParams(std::multimap<std::string, Data>& param
 
 Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool asExpression) {
 	if (HAS_ATTR(element, kXMLCharExpr)) {
-//        return _callbacks->evalAsData(ATTR(element, "expr"));
-#if 0
-		if (LOCALNAME(element) == "content") {
-			// test 528
-			return _callbacks->evalAsData(ATTR(element, kXMLCharExpr));
-		} else {
-			// test 326
-			return Data(ATTR(element, kXMLCharExpr), Data::INTERPRETED);
-		}
-#endif
 		if (asExpression) // test 453
 			return Data(ATTR(element, kXMLCharExpr), Data::INTERPRETED);
 		return _callbacks->evalAsData(ATTR(element, kXMLCharExpr));
@@ -629,26 +612,6 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 
 		// make an attempt to parse as XML
 		try {
-#if 0
-			XERCESC_NS::XercesDOMParser parser;
-			parser.setValidationScheme(XERCESC_NS::XercesDOMParser::Val_Never);
-			parser.setDoNamespaces(true);
-			parser.useScanner(XERCESC_NS::XMLUni::fgWFXMLScanner);
-
-			XERCESC_NS::HandlerBase errHandler;
-			parser.setErrorHandler(&errHandler);
-
-			std::string tmp = url;
-			XERCESC_NS::MemBufInputSource is((XMLByte*)content.c_str(), content.size(), X("fake"));
-
-			parser.parse(is);
-
-			Data d;
-			XERCESC_NS::DOMDocument* doc = parser.adoptDocument();
-			d.adoptedDoc = std::shared_ptr<XERCESC_NS::DOMDocument>(doc);
-			d.node = doc->getDocumentElement();
-			return d;
-#else
 			std::unique_ptr<XERCESC_NS::XercesDOMParser> parser(new XERCESC_NS::XercesDOMParser());
 			parser->setValidationScheme(XERCESC_NS::XercesDOMParser::Val_Always);
 			parser->setDoNamespaces(true);
@@ -685,8 +648,6 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 			} catch (const XERCESC_NS::DOMException& toCatch) {
 				ERROR_PLATFORM_THROW(X(toCatch.getMessage()).str());
 			}
-
-#endif
 
 		} catch (...) {
 			// just ignore and return as an interpreted string below

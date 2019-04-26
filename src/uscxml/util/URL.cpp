@@ -603,13 +603,16 @@ const void URLImpl::download(bool blocking) {
 		}
 		if (_hasFailed) {
 			ERROR_COMMUNICATION(exc, _error);
+			exc.data.compound["raw"] = Data(_orig, Data::VERBATIM);
 			throw exc;
 		}
 		if (iequals(scheme(), "http")) {
 			if (_statusCode.size() > 0 && strTo<int>(_statusCode) > 400) {
 				ERROR_COMMUNICATION(exc, _error);
-				if (_error.length() > 0)
+				if (_error.length() > 0) {
 					exc.data.compound["cause"] = Data(_error, Data::VERBATIM);
+				}
+				exc.data.compound["raw"] = Data(_orig, Data::VERBATIM);
 				throw exc;
 			}
 		}
