@@ -347,10 +347,18 @@ void HTTPServer::httpRecvReqCallback(struct evhttp_request *req, void *callbackD
 	struct evkeyval *header;
 	struct evbuffer *buf;
 
+	// 03.05.2019 header field names must be case insensitive
+	std::string contentType;
+
 	// insert headers to event data
 	for (header = headers->tqh_first; header; header = header->next.tqe_next) {
-		request.data.compound["header"].compound[header->key] = Data(header->value, Data::VERBATIM);
+		const std::string sKey(header->key);
+		request.data.compound["header"].compound[sKey] = Data(header->value, Data::VERBATIM);
 		raw << header->key << ": " << header->value << std::endl;
+		
+		if (boost::iequals(sKey, "Content-Type")) {
+			contentType = header->value;
+		}
 	}
 	raw << std::endl;
 
@@ -391,52 +399,53 @@ void HTTPServer::httpRecvReqCallback(struct evhttp_request *req, void *callbackD
 	raw << request.data.compound["content"].atom;
 
 	// decode content
-	if (request.data.compound.find("content") != request.data.compound.end() &&
-	        request.data.compound["header"].compound.find("Content-Type") != request.data.compound["header"].compound.end()) {
-		std::string contentType = request.data.compound["header"].compound["Content-Type"].atom;
-		if (false) {
-		} else if (iequals(contentType.substr(0, 33), "application/x-www-form-urlencoded")) {
-			// this is a form submit
-			std::stringstream ss(request.data.compound["content"].atom);
-			std::string item;
-			std::string key;
-			std::string value;
-			while(std::getline(ss, item, '&')) {
-				if (item.length() == 0)
-					continue;
-				size_t equalPos = item.find('=');
-				if (equalPos == std::string::npos)
-					continue;
-
-				key = item.substr(0, equalPos);
-				value = item.substr(equalPos + 1, item.length() - (equalPos + 1));
-				size_t keyCStrLen = 0;
-				size_t valueCStrLen = 0;
-				char* keyCStr = evhttp_uridecode(key.c_str(), 1, &keyCStrLen);
-				char* valueCStr = evhttp_uridecode(value.c_str(), 1, &valueCStrLen);
-				std::string decKey = std::string(keyCStr, keyCStrLen);
-				std::string decValue = std::string(valueCStr, valueCStrLen);
-
-				request.data.compound["content"].compound[decKey] = Data(decValue, Data::VERBATIM);
-				free(keyCStr);
-				free(valueCStr);
-				key.clear();
+	if (!contentType.empty()) {
+		if (request.data.compound.find("content") != request.data.compound.end()) {
+			if (false) {
 			}
-			request.data.compound["content"].atom.clear();
-		} else if (iequals(contentType.substr(0, 16), "application/json")) {
-			Data json = Data::fromJSON(request.data.compound["content"].atom);
-			if (!json.empty()) {
-				request.data.compound["content"] = json;
+			else if (iequals(contentType.substr(0, 33), "application/x-www-form-urlencoded")) {
+				// this is a form submit
+				std::stringstream ss(request.data.compound["content"].atom);
+				std::string item;
+				std::string key;
+				std::string value;
+				while (std::getline(ss, item, '&')) {
+					if (item.length() == 0)
+						continue;
+					size_t equalPos = item.find('=');
+					if (equalPos == std::string::npos)
+						continue;
+
+					key = item.substr(0, equalPos);
+					value = item.substr(equalPos + 1, item.length() - (equalPos + 1));
+					size_t keyCStrLen = 0;
+					size_t valueCStrLen = 0;
+					char* keyCStr = evhttp_uridecode(key.c_str(), 1, &keyCStrLen);
+					char* valueCStr = evhttp_uridecode(value.c_str(), 1, &valueCStrLen);
+					std::string decKey = std::string(keyCStr, keyCStrLen);
+					std::string decValue = std::string(valueCStr, valueCStrLen);
+
+					request.data.compound["content"].compound[decKey] = Data(decValue, Data::VERBATIM);
+					free(keyCStr);
+					free(valueCStr);
+					key.clear();
+				}
+				request.data.compound["content"].atom.clear();
 			}
-		} else if (iequals(contentType.substr(0, 15), "application/xml")) {
-			assert(0);
-//            NameSpacingParser parser = NameSpacingParser::fromXML(request.data.compound["content"].atom);
-//			if (parser.errorsReported()) {
-//				LOG(USCXML_ERROR) << "Cannot parse contents of HTTP request as XML";
-//			} else {
-//				request.data.compound["content"].node = parser.getDocument().getDocumentElement();
-//			}
+			else if (iequals(contentType.substr(0, 16), "application/json")) {
+				Data json = Data::fromJSON(request.data.compound["content"].atom);
+				if (!json.empty()) {
+					request.data.compound["content"] = json;
+				}
+			}
+			else if (iequals(contentType.substr(0, 15), "application/xml")) {
+				LOGD(USCXML_ERROR) << "HTTP request as XML is not supported! " << contentType;
+			}
 		}
+	}
+	else {
+		// 03.05.2019 Should we treat it as error?
+		LOGD(USCXML_ERROR) << "HTTP request require header 'Content-Type'!";
 	}
 
 	request.raw = raw.str();
