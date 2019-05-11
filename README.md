@@ -1,3 +1,6 @@
+# ArrayAsMap branch
+This branch is oriented towards complete support of **LuaDatamodel**. That's why Data's array was changed from **std::list\<Data\>** to **std::map\<int,Data\>**. So, if you want to use other datamodel, you'd better to choose [the original uscxml source](https://github.com/tklab-tud/uscxml)
+
 # uSCXML ReadMe
 
 [![Build Status](https://travis-ci.org/tklab-tud/uscxml.png?branch=master)](https://travis-ci.org/tklab-tud/uscxml)[![Build status](https://ci.appveyor.com/api/projects/status/b3mwo7w2qhtjal6f/branch/master?svg=true)](https://ci.appveyor.com/project/sradomski/uscxml/branch/master)[![Build status](https://scan.coverity.com/projects/11688/badge.svg)](https://scan.coverity.com/projects/tklab-tud-uscxml)
