@@ -36,7 +36,7 @@ namespace uscxml {
 using namespace XERCESC_NS;
 
 std::shared_ptr<ContentExecutorImpl> BasicContentExecutor::create(ContentExecutorCallbacks* callbacks) {
-	return std::shared_ptr<ContentExecutorImpl>(new BasicContentExecutor(callbacks));
+	return std::shared_ptr<ContentExecutorImpl>(new BasicContentExecutor(callbacks,_factory));
 }
 
 void BasicContentExecutor::processRaise(XERCESC_NS::DOMElement* content) {
@@ -370,7 +370,7 @@ void BasicContentExecutor::process(XERCESC_NS::DOMElement* block) {
 			processLog(block);
 		} else if (iequals(tagName, xmlPrefix + "script")) {
 			processScript(block);
-		} else if (Factory::getInstance().hasExecutableContent(LOCALNAME(block), X(block->getNamespaceURI()))) {
+		} else if ((_factory ? _factory : &Factory::getInstance())->hasExecutableContent(LOCALNAME(block), X(block->getNamespaceURI()))) {
 			// custom executable content, ask the factory about it!
 			if (_customExecContent.find(block) == _customExecContent.end()) {
 				_customExecContent[block] = _callbacks->createExecutableContent(LOCALNAME(block), X(block->getNamespaceURI()));

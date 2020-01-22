@@ -215,7 +215,8 @@ public:
 	}
 
 	virtual ExecutableContent createExecutableContent(const std::string& localName, const std::string& nameSpace) {
-		return Factory::getInstance().createExecutableContent(localName, nameSpace, this);
+		return _factory ? _factory->createExecutableContent(localName, nameSpace, this):
+			Factory::getInstance().createExecutableContent(localName, nameSpace, this);
 	}
 
 
@@ -257,6 +258,10 @@ public:
 
 	void setFactory(Factory* factory) {
 		_factory = factory;
+	}
+
+	virtual Factory* getFactory() {
+		return _factory;
 	}
 
 	virtual Logger getLogger() {

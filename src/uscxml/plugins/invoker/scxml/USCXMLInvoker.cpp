@@ -177,6 +177,11 @@ void USCXMLInvoker::invoke(const std::string& source, const Event& invokeEvent) 
 	}
 
 	if (_invokedInterpreter) {
+
+		if (_callbacks->getFactory()) {
+			_invokedInterpreter.getImpl()->setFactory(_callbacks->getFactory());
+		}
+
 		_invokedInterpreter.getImpl()->_parentQueue = _parentQueue;
 		_invokedInterpreter.getImpl()->_invokeId = invokeEvent.invokeid;
 

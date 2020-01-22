@@ -27,13 +27,16 @@ namespace uscxml {
 
 using namespace XERCESC_NS;
 
+class Factory;
+
 /**
  * @ingroup execcontent
  * @ingroup impl
  */
 class USCXML_API BasicContentExecutor : public ContentExecutorImpl {
 public:
-	BasicContentExecutor(ContentExecutorCallbacks* callbacks) : ContentExecutorImpl(callbacks) {}
+	BasicContentExecutor(ContentExecutorCallbacks* callbacks, Factory *factory) : 
+		ContentExecutorImpl(callbacks), _factory(factory) {}
 	virtual ~BasicContentExecutor() {}
 
 	virtual std::shared_ptr<ContentExecutorImpl> create(ContentExecutorCallbacks* callbacks);
@@ -60,6 +63,8 @@ protected:
 	void processParams(std::multimap<std::string, Data>& paramMap, XERCESC_NS::DOMElement* element);
 
 	std::map<XERCESC_NS::DOMElement*, ExecutableContent> _customExecContent;
+
+	Factory *_factory = nullptr;
 };
 
 }

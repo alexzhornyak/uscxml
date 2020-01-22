@@ -34,6 +34,7 @@ class Interpreter;
 class InterpreterMonitor;
 class ActionLanguage;
 class Logger;
+class Factory;
 
 /**
  * @ingroup invoker
@@ -49,6 +50,7 @@ public:
 	virtual std::set<InterpreterMonitor*> getMonitors() = 0;
 	virtual std::string getBaseURL() = 0;
 	virtual Logger getLogger() = 0;
+	virtual Factory *getFactory() = 0;
 };
 
 /**

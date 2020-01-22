@@ -391,7 +391,7 @@ void InterpreterImpl::init() {
 		_dataModel = _factory->createDataModel(HAS_ATTR(_scxml, kXMLCharDataModel) ? ATTR(_scxml, kXMLCharDataModel) : "null", this);
 	}
 	if (!_execContent) {
-		_execContent = ContentExecutor(std::shared_ptr<ContentExecutorImpl>(new BasicContentExecutor(this)));
+		_execContent = ContentExecutor(std::shared_ptr<ContentExecutorImpl>(new BasicContentExecutor(this,_factory)));
 	}
 
 	if (!_externalQueue) {
