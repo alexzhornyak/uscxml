@@ -172,7 +172,10 @@ std::list<InterpreterIssue> InterpreterIssue::forInterpreter(InterpreterImpl* in
 	std::list<DOMElement*> scxmls = nodeSets["scxml"];
 	scxmls.push_back(_scxml);
 
-	std::list<XERCESC_NS::DOMElement*> reachable = getReachableStates(_scxml);
+	std::map<DOMElement*, std::list<XERCESC_NS::DOMElement*>> reachable;
+	for (const auto it : scxmls) {
+		reachable[it] = getReachableStates(it);
+	}
 
 	std::list<DOMElement*>& states = nodeSets["state"];
 	std::list<DOMElement*>& parallels = nodeSets["parallel"];
@@ -335,14 +338,22 @@ std::list<InterpreterIssue> InterpreterIssue::forInterpreter(InterpreterImpl* in
 		if (DOMUtils::isMember(state, finals) && !HAS_ATTR(state, kXMLCharId)) // id is not required for finals
 			continue;
 
+		std::string sInterpreter = "";
+		auto scxmlRoot = uscxml::getScxmlNode(state);
+		if (scxmlRoot) {
+			if (HAS_ATTR(scxmlRoot, kXMLCharName)) {
+				sInterpreter = "[" + ATTR(scxmlRoot, kXMLCharName) + "]: ";
+			}
+		}
+		
 		// check for existance of id attribute - this not actually required!
 		if (!HAS_ATTR(state, kXMLCharId)) {
-			issues.push_back(InterpreterIssue("State has no 'id' attribute", state, InterpreterIssue::USCXML_ISSUE_FATAL));
+			issues.push_back(InterpreterIssue(sInterpreter + "State has no 'id' attribute", state, InterpreterIssue::USCXML_ISSUE_FATAL));
 			continue;
 		}
 
 		if (ATTR(state, kXMLCharId).size() == 0) {
-			issues.push_back(InterpreterIssue("State has empty 'id' attribute", state, InterpreterIssue::USCXML_ISSUE_FATAL));
+			issues.push_back(InterpreterIssue(sInterpreter + "State has empty 'id' attribute", state, InterpreterIssue::USCXML_ISSUE_FATAL));
 			continue;
 		}
 
@@ -352,30 +363,30 @@ std::list<InterpreterIssue> InterpreterIssue::forInterpreter(InterpreterImpl* in
 		if (LOCALNAME(state) == "history") {
 			std::list<DOMElement*> transitions = DOMUtils::filterChildElements(XML_PREFIX(state).str() + "transition", state, false);
 			if (transitions.size() > 1) {
-				issues.push_back(InterpreterIssue("History pseudo-state with id '" + stateId + "' has multiple transitions", state, InterpreterIssue::USCXML_ISSUE_FATAL));
+				issues.push_back(InterpreterIssue(sInterpreter + "History pseudo-state with id '" + stateId + "' has multiple transitions", state, InterpreterIssue::USCXML_ISSUE_FATAL));
 			} else if (transitions.size() == 0) {
-				issues.push_back(InterpreterIssue("History pseudo-state with id '" + stateId + "' has no default transition", state, InterpreterIssue::USCXML_ISSUE_FATAL));
+				issues.push_back(InterpreterIssue(sInterpreter + "History pseudo-state with id '" + stateId + "' has no default transition", state, InterpreterIssue::USCXML_ISSUE_FATAL));
 			} else {
 				DOMElement* transition = static_cast<DOMElement*>(transitions.front());
 				if (HAS_ATTR(transition, kXMLCharCond)) {
-					issues.push_back(InterpreterIssue("Transition in history pseudo-state '" + stateId + "' must not have a condition", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+					issues.push_back(InterpreterIssue(sInterpreter + "Transition in history pseudo-state '" + stateId + "' must not have a condition", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 				}
 				if (HAS_ATTR(transition, kXMLCharEvent)) {
-					issues.push_back(InterpreterIssue("Transition in history pseudo-state '" + stateId + "' must not have an event attribute", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+					issues.push_back(InterpreterIssue(sInterpreter + "Transition in history pseudo-state '" + stateId + "' must not have an event attribute", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 				}
 				if (!HAS_ATTR(transition, kXMLCharTarget)) {
-					issues.push_back(InterpreterIssue("Transition in history pseudo-state '" + stateId + "' has no target", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+					issues.push_back(InterpreterIssue(sInterpreter + "Transition in history pseudo-state '" + stateId + "' has no target", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 				} else {
 					std::list<DOMElement*> targetStates = getTargetStates(transition, _scxml);
 					for (auto tIter = targetStates.begin(); tIter != targetStates.end(); tIter++) {
 						DOMElement* target = *tIter;
 						if (HAS_ATTR(state, kXMLCharType) && ATTR(state, kXMLCharType) == "deep") {
 							if (!DOMUtils::isDescendant(target, state->getParentNode())) {
-								issues.push_back(InterpreterIssue("Transition in deep history pseudo-state '" + stateId + "' has illegal target state '" + ATTR(target, kXMLCharId) + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+								issues.push_back(InterpreterIssue(sInterpreter + "Transition in deep history pseudo-state '" + stateId + "' has illegal target state '" + ATTR(target, kXMLCharId) + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 							}
 						} else {
 							if (target->getParentNode() != state->getParentNode()) {
-								issues.push_back(InterpreterIssue("Transition in shallow history pseudo-state '" + stateId + "' has illegal target state '" + ATTR(target, kXMLCharId) + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+								issues.push_back(InterpreterIssue(sInterpreter + "Transition in shallow history pseudo-state '" + stateId + "' has illegal target state '" + ATTR(target, kXMLCharId) + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 							}
 						}
 					}
@@ -384,31 +395,42 @@ std::list<InterpreterIssue> InterpreterIssue::forInterpreter(InterpreterImpl* in
 		}
 
 		// check whether state is reachable
-		if (!DOMUtils::isMember(state, reachable) && areFromSameMachine(state, interpreter->_scxml)) {
-			issues.push_back(InterpreterIssue("State with id '" + stateId + "' is unreachable", state, InterpreterIssue::USCXML_ISSUE_WARNING));
+		// 24.01.2020: bugfix: unreachable for invoked also
+		auto sameReachable = reachable.find(scxmlRoot);
+		if (sameReachable != reachable.end() && !DOMUtils::isMember(state, sameReachable->second)) {
+			issues.push_back(InterpreterIssue(sInterpreter + "State with id '" + stateId + "' is unreachable", state, InterpreterIssue::USCXML_ISSUE_WARNING));
 		}
-
+		
 		// check for uniqueness of id attribute
-		if (seenStates.find(stateId) != seenStates.end()) {
-			issues.push_back(InterpreterIssue("Duplicate state with id '" + stateId + "'", state, InterpreterIssue::USCXML_ISSUE_FATAL));
+		// 24.01.2020: bugfix: check that states are from the same machine
+		auto itState = seenStates.find(stateId);
+		if (itState != seenStates.end() && areFromSameMachine(itState->second, state)) {
+			issues.push_back(InterpreterIssue(sInterpreter + "Duplicate state with id '" + stateId + "'", state, InterpreterIssue::USCXML_ISSUE_FATAL));
 			continue;
 		}
-		seenStates[ATTR(state, kXMLCharId)] = state;
+		seenStates[ATTR(state, kXMLCharId)] = state;		
 	}
 
 	for (auto tIter = transitions.begin(); tIter != transitions.end(); tIter++) {
 		DOMElement* transition = *tIter;
 
+		std::string sInterpreter = "";
+		if (auto scxmlRoot = uscxml::getScxmlNode(transition)) {
+			if (HAS_ATTR(scxmlRoot, kXMLCharName)) {
+				sInterpreter = "[" + ATTR(scxmlRoot, kXMLCharName) + "]: ";
+			}
+		}
+
 		// check for valid target
 		if (HAS_ATTR(transition, kXMLCharTarget)) {
 			std::list<std::string> targetIds = tokenize(ATTR(transition, kXMLCharTarget));
 			if (targetIds.size() == 0) {
-				issues.push_back(InterpreterIssue("Transition has empty target state list", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+				issues.push_back(InterpreterIssue(sInterpreter + "Transition has empty target state list", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 			}
 
 			for (std::list<std::string>::iterator targetIter = targetIds.begin(); targetIter != targetIds.end(); targetIter++) {
 				if (seenStates.find(*targetIter) == seenStates.end()) {
-					issues.push_back(InterpreterIssue("Transition has non-existant target state with id '" + *targetIter + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
+					issues.push_back(InterpreterIssue(sInterpreter + "Transition has non-existant target state with id '" + *targetIter + "'", transition, InterpreterIssue::USCXML_ISSUE_FATAL));
 					continue;
 				}
 			}

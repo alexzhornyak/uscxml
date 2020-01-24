@@ -459,26 +459,21 @@ std::list<DOMElement*> getReachableStates(const DOMElement* root) {
 	return reachable;
 }
 
-
-bool areFromSameMachine(const DOMNode* n1, const DOMNode* n2) {
+XERCESC_NS::DOMElement *getScxmlNode(const XERCESC_NS::DOMNode* n) {
 	// we traverse each nodes parent's until we reach an scxml element or null
-	const DOMNode* p1 = n1;
-	while(p1) {
-		if(iequals(LOCALNAME(p1), "scxml")) {
+	const DOMNode* p1 = n;
+	while (p1) {
+		if (iequals(LOCALNAME(p1), "scxml")) {
 			break;
 		}
 		p1 = p1->getParentNode();
 	}
+	return (DOMElement *)p1;
+}
 
-	const DOMNode* p2 = n2;
-	while(p2) {
-		if(iequals(LOCALNAME(p2), "scxml")) {
-			break;
-		}
-		p2 = p2->getParentNode();
-	}
-
-	return p1 == p2;
+bool areFromSameMachine(const DOMNode* n1, const DOMNode* n2) {
+	// we traverse each nodes parent's until we reach an scxml element or null
+	return getScxmlNode(n1) == getScxmlNode(n2);
 }
 
 }

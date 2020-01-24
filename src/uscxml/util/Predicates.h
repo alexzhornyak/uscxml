@@ -65,6 +65,8 @@ XERCESC_NS::DOMElement USCXML_API *getTransitionDomain(
     const XERCESC_NS::DOMElement* transition,
     const XERCESC_NS::DOMElement* root);
 
+XERCESC_NS::DOMElement USCXML_API *getScxmlNode(const XERCESC_NS::DOMNode* n);
+
 bool USCXML_API areFromSameMachine(const XERCESC_NS::DOMNode* n1,
                                    const XERCESC_NS::DOMNode* n2);
 
