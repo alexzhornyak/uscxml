@@ -146,7 +146,9 @@ luabridge::LuaRef LuaDataModel::getDataAsLua(lua_State* _luaState, const Data& d
 		}		
 		return luaData;
 	}
-	if (data.atom.size() > 0) {
+
+	// there can be case when string is empty
+	if (data.atom.size() > 0 || data.type == Data::VERBATIM) {
 		switch (data.type) {
 		case Data::VERBATIM: {
 			luaData = data.atom;
