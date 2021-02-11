@@ -33,21 +33,24 @@
 namespace uscxml {
 
 Event EventQueue::dequeue(size_t blockMs) {
-	return _impl->dequeue(blockMs);
+	return _impl ? _impl->dequeue(blockMs) : Event();
 }
 void EventQueue::enqueue(const Event& event) {
-	return _impl->enqueue(event);
+	if (_impl)
+		_impl->enqueue(event);
 }
 void EventQueue::reset() {
-	return _impl->reset();
+	if (_impl)
+		_impl->reset();
 }
 
 Data EventQueue::serialize() {
-	return _impl->serialize();
+	return _impl ? _impl->serialize() : Data();
 }
 
 void EventQueue::deserialize(const Data& data) {
-	return _impl->deserialize(data);
+	if (_impl)
+		_impl->deserialize(data);
 }
 
 std::shared_ptr<EventQueueImpl> EventQueue::getImplBase() {

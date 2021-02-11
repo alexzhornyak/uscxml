@@ -64,6 +64,8 @@ public:
 	virtual Data getAsData(const std::string& expr) = 0;
 	virtual void assign(const std::string& location, const Data& data, const std::map<std::string, std::string>& attrs) = 0;
 
+	virtual bool isValidExprSyntax(const std::string& expr) = 0;
+	virtual bool isValidScriptSyntax(const std::string &script) = 0;
 
 	virtual std::string getInvokeId() = 0;
 	virtual std::string getBaseURL() = 0;
@@ -99,7 +101,7 @@ public:
 	virtual void uninvoke(XERCESC_NS::DOMElement* invoke) = 0;
 
 	virtual void raiseDoneEvent(XERCESC_NS::DOMElement* state, XERCESC_NS::DOMElement* doneData) = 0;
-	virtual Data elementAsData(XERCESC_NS::DOMElement* element, bool asExpression = false) = 0;
+	virtual Data elementAsData(XERCESC_NS::DOMElement* element) = 0;
 
 protected:
 	ContentExecutorCallbacks* _callbacks;

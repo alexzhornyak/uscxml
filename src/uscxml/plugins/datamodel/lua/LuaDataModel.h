@@ -64,7 +64,7 @@ public:
 		return names;
 	}
 
-	virtual bool isValidSyntax(const std::string& expr) override;
+	virtual bool isValidExprSyntax(const std::string& expr) override;
 
 	virtual bool isValidScriptSyntax(const std::string& expr) override;
 

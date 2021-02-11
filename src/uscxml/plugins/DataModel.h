@@ -45,7 +45,7 @@ public:
 	/// @copydoc DataModelImpl::getNames()
 	virtual std::list<std::string> getNames();
 	/// @copydoc DataModelImpl::isValidSyntax()
-	virtual bool isValidSyntax(const std::string& expr);
+	virtual bool isValidExprSyntax(const std::string& expr);
 
 	virtual bool isValidScriptSyntax(const std::string &script);
 

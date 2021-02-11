@@ -120,7 +120,7 @@ public:
 	 * @param expr A string, supposedly containing an expression of the data-model.
 	 * @return Whether expr is in L(DM).
 	 */
-	virtual bool isValidSyntax(const std::string& expr) {
+	virtual bool isValidExprSyntax(const std::string& expr) {
 		return true; // overwrite when datamodel supports it
 	}
 

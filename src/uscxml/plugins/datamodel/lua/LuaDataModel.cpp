@@ -339,7 +339,7 @@ void LuaDataModel::eval(const std::string& content) {
 	lua_pop(_luaState, retVals);
 }
 
-bool LuaDataModel::isValidSyntax(const std::string& expr) {
+bool LuaDataModel::isValidExprSyntax(const std::string& expr) {
 	
 	const std::string s_expr = "return(" + expr + ")";
 	

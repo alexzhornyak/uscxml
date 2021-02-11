@@ -912,7 +912,7 @@ NEXT_SET:
 		for (auto iter = withCondAttrs.begin(); iter != withCondAttrs.end(); iter++) {
 			DOMElement* condAttr = *iter;
 			if (HAS_ATTR(condAttr, kXMLCharCond)) {
-				if (!_dataModel.isValidSyntax(ATTR(condAttr, kXMLCharCond))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(condAttr, kXMLCharCond))) {
 					issues.push_back(InterpreterIssue("Syntax error in cond attribute", condAttr, InterpreterIssue::USCXML_ISSUE_WARNING));
 					continue;
 				}
@@ -932,12 +932,12 @@ NEXT_SET:
 			DOMElement* withExprAttr = *iter;
 			if (HAS_ATTR(withExprAttr, kXMLCharExpr)) {
 				if (DOMUtils::isMember(withExprAttr, datas) || DOMUtils::isMember(withExprAttr, assigns)) {
-					if (!_dataModel.isValidSyntax(ATTR(withExprAttr, kXMLCharExpr))) { // Corrected
+					if (!_dataModel.isValidExprSyntax(ATTR(withExprAttr, kXMLCharExpr))) { // Corrected
 						issues.push_back(InterpreterIssue("Syntax error in expr attribute", withExprAttr, InterpreterIssue::USCXML_ISSUE_WARNING));
 						continue;
 					}
 				} else {
-					if (!_dataModel.isValidSyntax(ATTR(withExprAttr, kXMLCharExpr))) {
+					if (!_dataModel.isValidExprSyntax(ATTR(withExprAttr, kXMLCharExpr))) {
 						issues.push_back(InterpreterIssue("Syntax error in expr attribute", withExprAttr, InterpreterIssue::USCXML_ISSUE_WARNING));
 						continue;
 					}
@@ -950,17 +950,17 @@ NEXT_SET:
 		for (auto iter = foreachs.begin(); iter != foreachs.end(); iter++) {
 			DOMElement* foreach = *iter;
 			if (HAS_ATTR(foreach, kXMLCharArray)) {
-				if (!_dataModel.isValidSyntax(ATTR(foreach, kXMLCharArray))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(foreach, kXMLCharArray))) {
 					issues.push_back(InterpreterIssue("Syntax error in array attribute", foreach, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(foreach, kXMLCharItem)) {
-				if (!_dataModel.isValidSyntax(ATTR(foreach, kXMLCharItem))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(foreach, kXMLCharItem))) {
 					issues.push_back(InterpreterIssue("Syntax error in item attribute", foreach, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(foreach, kXMLCharIndex)) {
-				if (!_dataModel.isValidSyntax(ATTR(foreach, kXMLCharIndex))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(foreach, kXMLCharIndex))) {
 					issues.push_back(InterpreterIssue("Syntax error in index attribute", foreach, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
@@ -971,27 +971,27 @@ NEXT_SET:
 		for (auto iter = sends.begin(); iter != sends.end(); iter++) {
 			DOMElement* send = *iter;
 			if (HAS_ATTR(send, kXMLCharEventExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(send, kXMLCharEventExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(send, kXMLCharEventExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in eventexpr attribute", send, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(send, kXMLCharTargetExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(send, kXMLCharTargetExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(send, kXMLCharTargetExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in targetexpr attribute", send, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(send, kXMLCharTypeExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(send, kXMLCharTypeExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(send, kXMLCharTypeExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in typeexpr attribute", send, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(send, kXMLCharIdLocation)) {
-				if (!_dataModel.isValidSyntax(ATTR(send, kXMLCharIdLocation))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(send, kXMLCharIdLocation))) {
 					issues.push_back(InterpreterIssue("Syntax error in idlocation attribute", send, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
 			if (HAS_ATTR(send, kXMLCharDelayExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(send, kXMLCharDelayExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(send, kXMLCharDelayExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in delayexpr attribute", send, InterpreterIssue::USCXML_ISSUE_WARNING));
 				}
 			}
@@ -1003,19 +1003,19 @@ NEXT_SET:
 		for (auto iter = invokes.begin(); iter != invokes.end(); iter++) {
 			DOMElement* invoke = *iter;
 			if (HAS_ATTR(invoke, kXMLCharTypeExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(invoke, kXMLCharTypeExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(invoke, kXMLCharTypeExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in typeexpr attribute", invoke, InterpreterIssue::USCXML_ISSUE_WARNING));
 					continue;
 				}
 			}
 			if (HAS_ATTR(invoke, kXMLCharSourceExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(invoke, kXMLCharSourceExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(invoke, kXMLCharSourceExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in srcexpr attribute", invoke, InterpreterIssue::USCXML_ISSUE_WARNING));
 					continue;
 				}
 			}
 			if (HAS_ATTR(invoke, kXMLCharIdLocation)) {
-				if (!_dataModel.isValidSyntax(ATTR(invoke, kXMLCharIdLocation))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(invoke, kXMLCharIdLocation))) {
 					issues.push_back(InterpreterIssue("Syntax error in idlocation attribute", invoke, InterpreterIssue::USCXML_ISSUE_WARNING));
 					continue;
 				}
@@ -1027,7 +1027,7 @@ NEXT_SET:
 		for (auto iter = cancels.begin(); iter != cancels.end(); iter++) {
 			DOMElement* cancel = *iter;
 			if (HAS_ATTR(cancel, kXMLCharSendIdExpr)) {
-				if (!_dataModel.isValidSyntax(ATTR(cancel, kXMLCharSendIdExpr))) {
+				if (!_dataModel.isValidExprSyntax(ATTR(cancel, kXMLCharSendIdExpr))) {
 					issues.push_back(InterpreterIssue("Syntax error in sendidexpr attribute", cancel, InterpreterIssue::USCXML_ISSUE_WARNING));
 					continue;
 				}

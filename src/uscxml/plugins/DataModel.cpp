@@ -26,8 +26,8 @@ std::list<std::string> DataModel::getNames() {
 	return _impl->getNames();
 }
 
-bool DataModel::isValidSyntax(const std::string& expr) {
-	return _impl->isValidSyntax(expr);
+bool DataModel::isValidExprSyntax(const std::string& expr) {
+	return _impl->isValidExprSyntax(expr);
 }
 
 bool DataModel::isValidScriptSyntax(const std::string & script)

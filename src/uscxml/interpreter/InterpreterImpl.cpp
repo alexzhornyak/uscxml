@@ -106,9 +106,6 @@ InterpreterImpl::~InterpreterImpl() {
 		_instances.erase(getSessionId());
 	}
 
-//    assert(_invokers.size() == 0);
-//    ::xercesc_3_1::XMLPlatformUtils::Terminate();
-
 #ifdef WITH_CACHE_FILES
 	if (!envVarIsTrue("USCXML_NOCACHE_FILES") && _document != NULL) {
 		// save our cache
@@ -335,16 +332,25 @@ void InterpreterImpl::init() {
 		// try to open chached data from resource directory
 		std::string sharedTemp = URL::getTempDir(true);
 		std::ifstream dataFS(sharedTemp + PATH_SEPERATOR + md5(_baseURL) + ".uscxml.cache");
-		if (dataFS.is_open()) {
-			std::string cacheStr((std::istreambuf_iterator<char>(dataFS)),
-			                     std::istreambuf_iterator<char>());
-			_cache = Data::fromJSON(cacheStr);
+		try {
+			if (dataFS.is_open()) {
+#if 0 // deep debug			
+				LOGD(USCXML_INFO) << "Using cache from '" << sharedTemp << PATH_SEPERATOR << md5(_baseURL) << ".uscxml.cache'" << std::endl;
+#endif				
+				std::string cacheStr((std::istreambuf_iterator<char>(dataFS)),
+				                     std::istreambuf_iterator<char>());
+				_cache = Data::fromJSON(cacheStr);
+			}
+		} catch (...) {
+			remove(std::string(sharedTemp + PATH_SEPERATOR + md5(_baseURL) + ".uscxml.cache").c_str());
 		}
 
 		// get md5 of current document
-		std::stringstream ss;
-		ss << *_document;
-		_md5 = md5(ss.str());
+		if (_md5.length() == 0) {
+			std::stringstream ss;
+			ss << *_document;
+			_md5 = md5(ss.str());
+		}
 
 		if (_cache.compound.find("InterpreterImpl") != _cache.compound.end() &&
 		        _cache.compound["InterpreterImpl"].compound.find("md5") != _cache.compound["InterpreterImpl"].compound.end() &&
@@ -365,7 +371,6 @@ void InterpreterImpl::init() {
 
 		// do not override if already set
 		if (_ioProcs.find(ioProcIter->first) != _ioProcs.end()) {
-			ioProcIter++;
 			continue;
 		}
 
@@ -425,15 +430,10 @@ void InterpreterImpl::initData(XERCESC_NS::DOMElement* root) {
 		} else if (_invokeReq.namelist.find(id) != _invokeReq.namelist.end()) {
 			_dataModel.init(id, _invokeReq.namelist[id], additionalAttr);
 		} else {
-			try {
-				_dataModel.init(id, _execContent.elementAsData(root), additionalAttr);
-			} catch (ErrorEvent e) {
-				LOG(getLogger(), USCXML_WARN) << e << std::endl;
-				// test 453
-				_dataModel.init(id, _execContent.elementAsData(root, true), additionalAttr);
-			}
+			_dataModel.init(id, _execContent.elementAsData(root), additionalAttr);
 		}
 	} catch(ErrorEvent e) {
+		e.data.compound["xpath"] = uscxml::Data(DOMUtils::xPathForNode(root), uscxml::Data::VERBATIM);
 		LOG(getLogger(), USCXML_WARN) << e << std::endl;
 		// test 277
 		enqueueInternal(e);

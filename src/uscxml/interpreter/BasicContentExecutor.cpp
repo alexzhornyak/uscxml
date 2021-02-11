@@ -251,7 +251,7 @@ void BasicContentExecutor::processAssign(XERCESC_NS::DOMElement* content) {
 		additionalAttr[X(attr->getNodeName()).str()] = X(attr->getNodeValue()).str();
 	}
 
-	_callbacks->assign(location, elementAsData(content, true), additionalAttr);
+	_callbacks->assign(location, elementAsData(content), additionalAttr);
 }
 
 void BasicContentExecutor::processForeach(XERCESC_NS::DOMElement* content) {
@@ -541,8 +541,14 @@ void BasicContentExecutor::raiseDoneEvent(XERCESC_NS::DOMElement* state, XERCESC
 			try {
 				// content
 				std::list<DOMElement*> contents = DOMUtils::filterChildElements(XML_PREFIX(doneData).str() + "content", doneData);
-				if (contents.size() > 0) {
-					doneEvent.data = elementAsData(contents.front());
+				if (contents.size() > 0) {					
+					if (HAS_ATTR(contents.front(), kXMLCharExpr) &&
+						!_callbacks->isValidExprSyntax(ATTR(contents.front(), kXMLCharExpr))) {
+						ERROR_EXECUTION_THROW2("Expression '" + ATTR(contents.front(), kXMLCharExpr) + "' is not a legal data value", contents.front());
+					}
+					else {
+						doneEvent.data = elementAsData(contents.front());
+					}
 				}
 			} catch (ErrorEvent e) {
 				ERROR_EXECUTION_RETHROW(e, "Syntax error in donedata element content", doneData);
@@ -591,11 +597,14 @@ void BasicContentExecutor::processParams(std::multimap<std::string, Data>& param
 	}
 }
 
-Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool asExpression) {
+Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element) {
+	// element with expr
 	if (HAS_ATTR(element, kXMLCharExpr)) {
-		if (asExpression) // test 453
-			return Data(ATTR(element, kXMLCharExpr), Data::INTERPRETED);
-		return _callbacks->evalAsData(ATTR(element, kXMLCharExpr));
+		// we cannot throw here:
+		// - with init, we need to check in the datamodel
+		// - with content, we need to invoke isLegalDataValue later
+		// test 277, 528
+		return Data(ATTR(element, kXMLCharExpr), Data::INTERPRETED);
 	}
 
 	if (HAS_ATTR(element, kXMLCharSource)) {
@@ -634,7 +643,6 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 				element->appendChild(newNode);
 
 				Data d;
-//                d.adoptedDoc = std::shared_ptr<XERCESC_NS::DOMDocument>(parser->adoptDocument());
 				d.node = newNode;
 				return d;
 			}
@@ -654,10 +662,16 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 		}
 		try {
 			Data d = _callbacks->getAsData(content);
-			if (!d.empty())
+			if (!d.empty()) {
+				// test558
+				if (d.type == Data::VERBATIM) {
+					d.atom = spaceNormalize(d.atom);
+				}
 				return d;
+			}
 		} catch(uscxml::ErrorEvent &e) {
 			// we need at least to inform user about it
+			e.data.compound["xpath"] = uscxml::Data(DOMUtils::xPathForNode(element), uscxml::Data::VERBATIM);
 			_callbacks->getLogger().log(USCXML_WARN) << e << std::endl;
 		}
 		catch (...) {
@@ -689,30 +703,41 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element, bool a
 				try {
 					// test153, we need to throw for test150 in promela
 					Data d = _callbacks->getAsData(contentSS.str());
-					if (!d.empty())
+					if (!d.empty()) {
+						// test562
+						if (d.type == Data::VERBATIM) {							
+							d.atom = spaceNormalize(d.atom);
+						}
 						return d;
+					}						
 				} catch (uscxml::ErrorEvent &e) {
 					// we need at least to inform user about it
+					e.data.compound["xpath"] = uscxml::Data(DOMUtils::xPathForNode(element), uscxml::Data::VERBATIM);
 					_callbacks->getLogger().log(USCXML_WARN) << e << std::endl;
 				} catch (...) {
-					_callbacks->getLogger().log(USCXML_WARN) << __FUNCTION__ << ":" << __LINE__ << "Unknown error!" << std::endl;
+					const std::string sPath = DOMUtils::xPathForNode(element);
+					_callbacks->getLogger().log(USCXML_WARN) << __FUNCTION__ << ":Path:" << sPath << ":Unknown error!" << std::endl;
 				}
 			}
-
-			if (asExpression) // not actually used, but likely expected
-				return Data(contentSS.str(), Data::INTERPRETED);
-
-			// test153, we need to throw for test150 in promela
-			Data d = _callbacks->getAsData(contentSS.str());
-			if (!d.empty())
-				return d;
+			else {
+				// test153, we need to throw for test150 in promela
+				Data d = _callbacks->getAsData(contentSS.str());
+				if (!d.empty()) {
+					// test558
+					if (d.type == Data::VERBATIM) {
+						d.atom = spaceNormalize(d.atom);
+					}
+					return d;
+				}					
+			}
 
 			// never actually occurs with the w3c tests
 			return Data(spaceNormalize(contentSS.str()), Data::VERBATIM);
 		}
 	}
-
-//	LOG(USCXML_WARN) << "Element " << DOMUtils::xPathForNode(element) << " did not yield any data";
+#if 0 // deep debug
+	LOG(USCXML_WARN) << "Element " << DOMUtils::xPathForNode(element) << " did not yield any data";
+#endif
 	return Data();
 }
 

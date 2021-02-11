@@ -11,7 +11,6 @@
 #include "uscxml/plugins/Factory.h"
 #include "uscxml/server/HTTPServer.h"
 
-
 int main(int argc, char** argv) {
 	using namespace uscxml;
 
@@ -33,21 +32,34 @@ int main(int argc, char** argv) {
 		sslConf->publicKey = options.certificate;
 		sslConf->port = options.httpsPort;
 
-	} else if (options.privateKey.length() > 0 && options.publicKey.length() > 0) {
+	}
+	else if (options.privateKey.length() > 0 && options.publicKey.length() > 0) {
 		sslConf = new HTTPServer::SSLConfig();
 		sslConf->privateKey = options.privateKey;
 		sslConf->publicKey = options.publicKey;
 		sslConf->port = options.httpsPort;
 
 	}
+
 	HTTPServer::getInstance(options.httpPort, options.wsPort, sslConf);
+
+	std::set<Factory::PluginType> FACTORY_TYPES{
+		Factory::PluginType::ptSCXMLIOProcessor,
+		Factory::PluginType::ptLuaDataModel,
+		Factory::PluginType::ptJSCDataModel,
+		Factory::PluginType::ptNullDataModel,
+		Factory::PluginType::ptUSCXMLInvoker,
+		Factory::PluginType::ptBasicHTTPIOProcessor
+	};
+
+	Factory::getInstance().registerCustomPlugins(FACTORY_TYPES);
 
     if (options.pluginPath.length() > 0) {
         Factory::setDefaultPluginPath(options.pluginPath);
     }
     
     if (options.verbose) {
-        Factory::getInstance()->listComponents();
+        Factory::getInstance().listComponents();
     }
 
 	// instantiate and configure interpreters
@@ -122,5 +134,8 @@ int main(int argc, char** argv) {
         while(true)
             std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+	Factory::getInstance().cleanup();
+
 	return EXIT_SUCCESS;
 }

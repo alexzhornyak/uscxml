@@ -107,6 +107,15 @@ public:
 		PLATFORM = 3
 	};
 
+	static std::string TypeToString(const Type type) {
+		switch (type) {
+		case INTERNAL: return "internal";
+		case EXTERNAL: return "external";
+		case PLATFORM: return "platform";
+		}
+		return "";
+	};
+
 	Event() : eventType(INTERNAL), hideSendId(false), uuid(UUID::getUUID()) {}
 	explicit Event(const std::string& name, Type type = INTERNAL) : name(name), eventType(type), hideSendId(false) {}
 	static Event fromData(const Data& data);
@@ -199,7 +208,7 @@ public:
 
 	std::string raw;
 	std::string name;
-	Type eventType;
+	Type eventType = INTERNAL;
 	std::string origin;
 	std::string origintype;
 	std::string sendid;

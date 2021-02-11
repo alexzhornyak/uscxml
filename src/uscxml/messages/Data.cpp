@@ -90,6 +90,11 @@ Data Data::fromJSON(const std::string& jsonString) {
 		// Data d2 = fromJSON(tmp);
 		// we expect 'd==d2', so return 'jsonString' as is
 		data.atom = jsonString;
+		/* 10.02.2021 */
+		// test294
+		if (!isNumeric(data.atom.c_str(), 10)) {
+			data.setType(Data::VERBATIM);
+		}
 		
 		return data;
 	}

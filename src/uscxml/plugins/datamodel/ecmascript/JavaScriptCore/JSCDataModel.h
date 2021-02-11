@@ -54,42 +54,45 @@ class JSCDataModel : public DataModelImpl {
 public:
 	JSCDataModel();
 	virtual ~JSCDataModel();
-	virtual std::shared_ptr<DataModelImpl> create(DataModelCallbacks* callbacks);
+	virtual std::shared_ptr<DataModelImpl> create(DataModelCallbacks* callbacks) override;
 
-	virtual void addExtension(DataModelExtension* ext);
+	virtual void addExtension(DataModelExtension* ext) override;
 
-	virtual std::list<std::string> getNames() {
+	virtual std::list<std::string> getNames() override {
 		std::list<std::string> names;
 		names.push_back("ecmascript");
 		return names;
 	}
 
-	virtual bool isValidSyntax(const std::string& expr);
+	virtual bool isValidExprSyntax(const std::string& expr) override;
 
-	virtual void setEvent(const Event& event);
+	virtual bool isValidScriptSyntax(const std::string &script) override;
+
+	virtual void setEvent(const Event& event) override;
 
 	// foreach
-	virtual uint32_t getLength(const std::string& expr);
+	virtual uint32_t getLength(const std::string& expr) override;
 	virtual void setForeach(const std::string& item,
 	                        const std::string& array,
 	                        const std::string& index,
-	                        uint32_t iteration);
+	                        uint32_t iteration) override;
 
-	virtual Data getAsData(const std::string& content);
-	virtual Data evalAsData(const std::string& expr);
-	virtual bool evalAsBool(const std::string& expr);
+	virtual Data getAsData(const std::string& content) override;
+	virtual Data evalAsData(const std::string& expr) override;
+	virtual bool evalAsBool(const std::string& expr) override;
+	virtual void eval(const std::string& content) override;
 
-	virtual bool isDeclared(const std::string& expr);
+	virtual bool isDeclared(const std::string& expr) override;
 
 	virtual void assign(const std::string& location,
 	                    const Data& data,
-	                    const std::map<std::string, std::string>& attr = std::map<std::string, std::string>());
+	                    const std::map<std::string, std::string>& attr = std::map<std::string, std::string>()) override;
 	virtual void init(const std::string& location,
 	                  const Data& data,
-	                  const std::map<std::string, std::string>& attr = std::map<std::string, std::string>());
+	                  const std::map<std::string, std::string>& attr = std::map<std::string, std::string>()) override;
 
 protected:
-	virtual void setup();
+	virtual void setup() override;
 
 	static JSClassDefinition jsInClassDef;
 	static JSValueRef jsIn(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
@@ -113,7 +116,7 @@ protected:
 	Data getValueAsData(const JSValueRef value);
 	JSValueRef evalAsValue(const std::string& expr, bool dontThrow = false);
 
-	void handleException(JSValueRef exception);
+	void handleException(JSValueRef exception, const std::string &description = "");
 
 	std::string _sessionId;
 	std::string _name;

@@ -23,33 +23,37 @@
 namespace uscxml {
 
 InterpreterState MicroStep::step(size_t blockMs) {
-	return _impl->step(blockMs);
+	return _impl ? _impl->step(blockMs) : USCXML_UNDEF;
 }
 void MicroStep::reset() {
-	return _impl->reset();
+	if (_impl)
+		_impl->reset();
 }
 bool MicroStep::isInState(const std::string& stateId) {
-	return _impl->isInState(stateId);
+	return _impl ? _impl->isInState(stateId) : false;
 }
 
 std::list<XERCESC_NS::DOMElement*> MicroStep::getConfiguration() {
-	return _impl->getConfiguration();
+	return _impl ? _impl->getConfiguration() : std::list<XERCESC_NS::DOMElement*>();
 }
 
 void MicroStep::init(XERCESC_NS::DOMElement* scxml) {
-	_impl->init(scxml);
+	if (_impl)
+		_impl->init(scxml);
 }
 
 void MicroStep::markAsCancelled() {
-	_impl->markAsCancelled();
+	if (_impl)
+		_impl->markAsCancelled();
 }
 
 void MicroStep::deserialize(const Data& encodedState) {
-	_impl->deserialize(encodedState);
+	if (_impl)
+		_impl->deserialize(encodedState);
 }
 
 Data MicroStep::serialize() {
-	return _impl->serialize();
+	return _impl ? _impl->serialize() : Data();
 }
 
 std::shared_ptr<MicroStepImpl> MicroStep::getImpl() const {

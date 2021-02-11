@@ -77,85 +77,85 @@ public:
 	virtual void deserialize(const std::string& encodedState);
 	virtual std::string serialize();
 
-	InterpreterState getState() {
+	inline InterpreterState getState() {
 		return _state;
 	}
 
-	std::list<XERCESC_NS::DOMElement*> getConfiguration() {
+	inline std::list<XERCESC_NS::DOMElement*> getConfiguration() {
 		return _microStepper.getConfiguration();
 	}
 
-	void addMonitor(InterpreterMonitor* monitor) {
+	inline void addMonitor(InterpreterMonitor* monitor) {
 		_monitors.insert(monitor);
 	}
 
-	void removeMonitor(InterpreterMonitor* monitor) {
+	inline void removeMonitor(InterpreterMonitor* monitor) {
 		_monitors.erase(monitor);
 	}
 
 	/**
 	 MicrostepCallbacks
 	 */
-	virtual Event dequeueInternal() {
+	inline virtual Event dequeueInternal() override {
 		_currEvent = _internalQueue.dequeue(0);
 		if (_currEvent)
 			_dataModel.setEvent(_currEvent);
 		return _currEvent;
 	}
-	virtual Event dequeueExternal(size_t blockMs);
-	virtual bool isTrue(const std::string& expr);
+	virtual Event dequeueExternal(size_t blockMs) override;
+	virtual bool isTrue(const std::string& expr) override;
 
-	virtual void raiseDoneEvent(XERCESC_NS::DOMElement* state, XERCESC_NS::DOMElement* doneData) {
+	inline virtual void raiseDoneEvent(XERCESC_NS::DOMElement* state, XERCESC_NS::DOMElement* doneData) override {
 		_execContent.raiseDoneEvent(state, doneData);
 	}
 
-	virtual void process(XERCESC_NS::DOMElement* block) {
+	inline virtual void process(XERCESC_NS::DOMElement* block) override {
 		_execContent.process(block);
 	}
 
-	virtual bool isMatched(const Event& event, const std::string& eventDesc);
-	virtual void initData(XERCESC_NS::DOMElement* element);
+	virtual bool isMatched(const Event& event, const std::string& eventDesc) override;
+	virtual void initData(XERCESC_NS::DOMElement* element) override;
 
-	virtual void invoke(XERCESC_NS::DOMElement* invoke) {
+	inline virtual void invoke(XERCESC_NS::DOMElement* invoke) override {
 		_execContent.invoke(invoke);
 	}
 
-	virtual void uninvoke(XERCESC_NS::DOMElement* invoke) {
+	inline virtual void uninvoke(XERCESC_NS::DOMElement* invoke) override {
 		_execContent.uninvoke(invoke);
 	}
 
-	virtual std::set<InterpreterMonitor*> getMonitors() {
+	inline virtual std::set<InterpreterMonitor*> getMonitors() override {
 		return _monitors;
 	}
 
-	virtual Interpreter getInterpreter() {
+	inline virtual Interpreter getInterpreter() override {
 		return Interpreter(shared_from_this());
 	}
 
-	virtual Data& getCache() {
+	inline virtual Data& getCache() override {
 		return _cache;
 	}
 
 	/**
 	 DataModelCallbacks
 	 */
-	virtual const std::string& getName() {
+	inline virtual const std::string& getName() override {
 		return _name;
 	}
-	virtual const std::string& getSessionId() {
+	inline virtual const std::string& getSessionId() override {
 		return _sessionId;
 	}
-	virtual const std::map<std::string, IOProcessor>& getIOProcessors() {
+	inline virtual const std::map<std::string, IOProcessor>& getIOProcessors() override {
 		return _ioProcs;
 	}
-	virtual const std::map<std::string, Invoker>& getInvokers() {
+	inline virtual const std::map<std::string, Invoker>& getInvokers() override {
 		return _invokers;
 	}
 
-	virtual bool isInState(const std::string& stateId) {
+	inline virtual bool isInState(const std::string& stateId) override {
 		return _microStepper.isInState(stateId);
 	}
-	virtual XERCESC_NS::DOMDocument* getDocument() const {
+	inline virtual XERCESC_NS::DOMDocument* getDocument() const override {
 		return _document;
 	}
 
@@ -163,58 +163,66 @@ public:
 	 ContentExecutorCallbacks
 	 */
 
-	virtual void enqueueInternal(const Event& event) {
+	inline virtual void enqueueInternal(const Event& event) override {
 		return _internalQueue.enqueue(event);
 	}
-	virtual void enqueueExternal(const Event& event) {
+	inline virtual void enqueueExternal(const Event& event) override {
 		return _externalQueue.enqueue(event);
 	}
-	virtual void enqueueExternalDelayed(const Event& event, size_t delayMs, const std::string& eventUUID) {
+	inline virtual void enqueueExternalDelayed(const Event& event, size_t delayMs, const std::string& eventUUID) override {
 		return _delayQueue.enqueueDelayed(event, delayMs, eventUUID);
 	}
-	virtual void cancelDelayed(const std::string& eventId);
+	virtual void cancelDelayed(const std::string& eventId) override;
 
-	virtual size_t getLength(const std::string& expr) {
+	inline virtual size_t getLength(const std::string& expr) override {
 		return _dataModel.getLength(expr);
 	}
 
-	virtual void setForeach(const std::string& item,
+	inline virtual void setForeach(const std::string& item,
 	                        const std::string& array,
 	                        const std::string& index,
-	                        uint32_t iteration) {
+	                        uint32_t iteration) override {
 		return _dataModel.setForeach(item, array, index, iteration);
 	}
-	virtual Data evalAsData(const std::string& expr) {
+	inline virtual Data evalAsData(const std::string& expr) override {
 		return _dataModel.evalAsData(expr);
 	}
 
-	virtual void eval(const std::string& content) {
+	inline virtual void eval(const std::string& content) override {
 		_dataModel.eval(content);
 	}
 
-	virtual Data getAsData(const std::string& expr) {
+	inline virtual Data getAsData(const std::string& expr) override {
 		return _dataModel.getAsData(expr);
 	}
 
-	virtual void assign(const std::string& location, const Data& data, const std::map<std::string, std::string>& attrs);
+	virtual bool isValidExprSyntax(const std::string& expr) override {
+		return _dataModel.isValidExprSyntax(expr);
+	}
 
-	virtual std::string getInvokeId() {
+	virtual bool isValidScriptSyntax(const std::string &script) override {
+		return _dataModel.isValidScriptSyntax(script);
+	}
+
+	virtual void assign(const std::string& location, const Data& data, const std::map<std::string, std::string>& attrs) override;
+
+	inline virtual std::string getInvokeId() override {
 		return _invokeId;
 	}
-	virtual std::string getBaseURL() {
+	inline virtual std::string getBaseURL() override {
 		return _baseURL;
 	}
 
-	virtual bool checkValidSendType(const std::string& type, const std::string& target);
-	virtual void invoke(const std::string& type, const std::string& src, bool autoForward, XERCESC_NS::DOMElement* finalize, const Event& invokeEvent);
-	virtual void uninvoke(const std::string& invokeId);
-	virtual void enqueue(const std::string& type, const std::string& target, size_t delayMs, const Event& sendEvent);
+	virtual bool checkValidSendType(const std::string& type, const std::string& target) override;
+	virtual void invoke(const std::string& type, const std::string& src, bool autoForward, XERCESC_NS::DOMElement* finalize, const Event& invokeEvent) override;
+	virtual void uninvoke(const std::string& invokeId) override;
+	virtual void enqueue(const std::string& type, const std::string& target, size_t delayMs, const Event& sendEvent) override;
 
-	virtual const Event& getCurrentEvent() {
+	inline virtual const Event& getCurrentEvent() override {
 		return _currEvent;
 	}
 
-	virtual ExecutableContent createExecutableContent(const std::string& localName, const std::string& nameSpace) {
+	inline virtual ExecutableContent createExecutableContent(const std::string& localName, const std::string& nameSpace) override {
 		return _factory ? _factory->createExecutableContent(localName, nameSpace, this):
 			Factory::getInstance().createExecutableContent(localName, nameSpace, this);
 	}
@@ -223,18 +231,18 @@ public:
 	/**
 	 IOProcessorCallbacks
 	 */
-	virtual void enqueueAtInvoker(const std::string& invokeId, const Event& event);
-	virtual void enqueueAtParent(const Event& event);
+	virtual void enqueueAtInvoker(const std::string& invokeId, const Event& event)  override;
+	virtual void enqueueAtParent(const Event& event)  override;
 
 	/**
 	 DelayedEventQueueCallbacks
 	 */
 
-	virtual void eventReady(Event& event, const std::string& eventUUID);
+	virtual void eventReady(Event& event, const std::string& eventUUID)  override;
 
 	/** --- */
 
-	void setActionLanguage(const ActionLanguage& al) {
+	inline void setActionLanguage(const ActionLanguage& al) {
 		if (al.logger) // we intialized _logger as the default logger already
 			_logger = al.logger;
 		_execContent = al.execContent;
@@ -245,7 +253,7 @@ public:
 		_delayQueue = al.delayQueue;
 	}
 
-	ActionLanguage* getActionLanguage() {
+	inline ActionLanguage* getActionLanguage() {
 		_al.logger = _logger;
 		_al.execContent = _execContent;
 		_al.microStepper = _microStepper;
@@ -256,21 +264,21 @@ public:
 		return &_al;
 	}
 
-	void setFactory(Factory* factory) {
+	inline void setFactory(Factory* factory) {
 		_factory = factory;
 	}
 
-	virtual Factory* getFactory() {
+	inline virtual Factory* getFactory() {
 		return _factory;
 	}
 
-	virtual Logger getLogger() {
+	inline virtual Logger getLogger() {
 		return _logger;
 	}
 
 	static std::map<std::string, std::weak_ptr<InterpreterImpl> > getInstances();
 
-	virtual XERCESC_NS::DOMDocument* getDocument() {
+	inline virtual XERCESC_NS::DOMDocument* getDocument() {
 		return _document;
 	}
 
