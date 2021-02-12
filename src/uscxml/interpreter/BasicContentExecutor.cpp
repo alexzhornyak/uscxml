@@ -39,6 +39,18 @@ std::shared_ptr<ContentExecutorImpl> BasicContentExecutor::create(ContentExecuto
 	return std::shared_ptr<ContentExecutorImpl>(new BasicContentExecutor(callbacks,_factory));
 }
 
+Data BasicContentExecutor::elementAsEvaluatedData(XERCESC_NS::DOMElement* element) {
+	// issue with classical 'calculator' example
+	// when 'content' is like 'true ? "foo" : "bar"
+	// we need to receive the result but not source code
+	const Data &d = elementAsData(element);
+	if (d.type == Data::INTERPRETED && d.atom.size() > 0 && !isNumeric(d.atom.c_str(), 10)) {
+		// immediately evaluate!
+		return _callbacks->evalAsData(d.atom);
+	}
+	return d;
+}
+
 void BasicContentExecutor::processRaise(XERCESC_NS::DOMElement* content) {
 	Event raised(ATTR(content, kXMLCharEvent));
 	_callbacks->enqueueInternal(raised);
@@ -169,8 +181,8 @@ void BasicContentExecutor::processSend(XERCESC_NS::DOMElement* element) {
 	try {
 		// content
 		std::list<DOMElement*> contents = DOMUtils::filterChildElements(XML_PREFIX(element).str() + "content", element);
-		if (contents.size() > 0) {
-			sendEvent.data = elementAsData(contents.front());
+		if (contents.size() > 0) {			
+			sendEvent.data = elementAsEvaluatedData(contents.front());
 		}
 	} catch (ErrorEvent e) {
 		ERROR_EXECUTION_RETHROW(e, "Syntax error in send element content", element);
@@ -472,13 +484,7 @@ void BasicContentExecutor::invoke(XERCESC_NS::DOMElement* element) {
 		std::list<DOMElement*> contents = DOMUtils::filterChildElements(XML_PREFIX(element).str() + "content", element);
 		if (contents.size() > 0) {
 			// test530
-			Data d = elementAsData(contents.front());
-			if (d.type == Data::INTERPRETED && d.atom.size() > 0) {
-				// immediately evaluate!
-				invokeEvent.data = _callbacks->evalAsData(d.atom);
-			} else {
-				invokeEvent.data = d;
-			}
+			invokeEvent.data = elementAsEvaluatedData(contents.front());			
 		}
 	} catch (ErrorEvent e) {
 		ERROR_EXECUTION_RETHROW(e, "Syntax error in invoke element content", element);
@@ -547,7 +553,7 @@ void BasicContentExecutor::raiseDoneEvent(XERCESC_NS::DOMElement* state, XERCESC
 						ERROR_EXECUTION_THROW2("Expression '" + ATTR(contents.front(), kXMLCharExpr) + "' is not a legal data value", contents.front());
 					}
 					else {
-						doneEvent.data = elementAsData(contents.front());
+						doneEvent.data = elementAsEvaluatedData(contents.front());
 					}
 				}
 			} catch (ErrorEvent e) {
@@ -591,7 +597,7 @@ void BasicContentExecutor::processParams(std::multimap<std::string, Data>& param
 		} else if (HAS_ATTR(*paramIter, kXMLCharLocation)) {
 			d = _callbacks->evalAsData(ATTR(*paramIter, kXMLCharLocation));
 		} else {
-			d = elementAsData(*paramIter);
+			d = elementAsEvaluatedData(*paramIter);
 		}
 		paramMap.insert(make_pair(name, d));
 	}
@@ -699,7 +705,7 @@ Data BasicContentExecutor::elementAsData(XERCESC_NS::DOMElement* element) {
 			// this must be handled in getAsData
 			// test294, test562
 			if (LOCALNAME(element) == "content") {
-				// need first try getAsData because how to pass 179 ?
+				// need first try getAsData because how to pass test179 ?
 				try {
 					// test153, we need to throw for test150 in promela
 					Data d = _callbacks->getAsData(contentSS.str());

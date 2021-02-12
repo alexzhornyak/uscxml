@@ -19,6 +19,8 @@
 
 #include "String.h"
 #include <sstream>
+#include <boost/system/config.hpp>
+#include <boost/locale.hpp>
 #include <boost/algorithm/string.hpp>
 
 namespace uscxml {
@@ -224,5 +226,18 @@ NEXT_DESC:
 #endif
 }
 
+std::string fromLocaleToUtf8(const std::string &localeStr) {
+	boost::locale::generator g;
+	g.locale_cache_enabled(true);
+	std::locale loc = g(boost::locale::util::get_system_locale());
+	return boost::locale::conv::to_utf<char>(localeStr, loc);
+}
+
+std::string toLocaleFromUtf8(const std::string &utf8Str) {
+	boost::locale::generator g;
+	g.locale_cache_enabled(true);
+	std::locale loc = g(boost::locale::util::get_system_locale());
+	return boost::locale::conv::from_utf<char>(utf8Str, loc);
+}
 
 }

@@ -37,6 +37,9 @@ std::list<std::string> USCXML_API tokenize(const std::string &line,
 std::string USCXML_API spaceNormalize(const std::string &text);
 bool USCXML_API nameMatch(const std::string &eventDescs, const std::string &event);
 
+std::string USCXML_API fromLocaleToUtf8(const std::string &localeStr);
+std::string USCXML_API toLocaleFromUtf8(const std::string &utf8Str);
+
 }
 
 #endif /* end of include guard: STRING_H_FD462039 */

@@ -4631,11 +4631,8 @@ static JSValueRef _wrap_DOMElement_getAttribute(JSContextRef context, JSObjectRe
   result = (XMLCh *)((XERCES_CPP_NAMESPACE::DOMElement const *)arg1)->getAttribute((XMLCh const *)arg2);
   
   jsresult = XMLString2JS(result, context);
-  
-  
-  
-  delete[] arg2;
-  
+    
+  XERCES_CPP_NAMESPACE::XMLString::release(&arg2);    
   
   return jsresult;
   
@@ -4703,9 +4700,7 @@ static JSValueRef _wrap_DOMElement_getElementsByTagName(JSContextRef context, JS
   result = (XERCES_CPP_NAMESPACE::DOMNodeList *)((XERCES_CPP_NAMESPACE::DOMElement const *)arg1)->getElementsByTagName((XMLCh const *)arg2);
   jsresult = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_XERCES_CPP_NAMESPACE__DOMNodeList, 0 |  0 );
   
-  
-  delete[] arg2;
-  
+  XERCES_CPP_NAMESPACE::XMLString::release(&arg2);      
   
   return jsresult;
   

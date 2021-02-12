@@ -65,6 +65,8 @@ protected:
 	std::map<XERCESC_NS::DOMElement*, ExecutableContent> _customExecContent;
 
 	Factory *_factory = nullptr;
+private:
+	Data elementAsEvaluatedData(XERCESC_NS::DOMElement* element);
 };
 
 }

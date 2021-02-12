@@ -38,8 +38,8 @@
 #endif
 
 #define EVENT_STRING_OR_UNDEF(field, cond) \
-JSStringRef field##Name = JSStringCreateWithUTF8CString( #field ); \
-JSStringRef field##Val = JSStringCreateWithUTF8CString(event.field.c_str()); \
+JSStringRef field##Name = JSStringCreateWithUTF8CString( uscxml::fromLocaleToUtf8(#field).c_str() ); \
+JSStringRef field##Val = JSStringCreateWithUTF8CString( uscxml::fromLocaleToUtf8(event.field).c_str()); \
 JSObjectSetProperty(_ctx, \
                     eventObj, \
                     field##Name, \
@@ -53,13 +53,35 @@ if (exception) \
 
 using namespace XERCESC_NS;
 
+static std::string JS2String(JSStringRef strRef) {
+	if (strRef) {
+		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(strRef);
+		std::vector<char> buffer(maxSize, 0);
+		JSStringGetUTF8CString(strRef, buffer.data(), maxSize);
+		return uscxml::toLocaleFromUtf8(buffer.data());
+	}
+	return "";
+}
+
+static std::string JS2StringAndRelease(JSStringRef strRef) {
+	if (strRef) {
+		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(strRef);
+		std::vector<char> buffer(maxSize, 0);
+		JSStringGetUTF8CString(strRef, buffer.data(), maxSize);
+		JSStringRelease(strRef);
+		return uscxml::toLocaleFromUtf8(buffer.data());
+	}
+	return "";
+}
+
 #ifndef NO_XERCESC
+
 static JSValueRef XMLString2JS(const XMLCh* input, JSContextRef context) {
 	JSValueRef output;
 
 	char* res = XERCESC_NS::XMLString::transcode(input);
 
-	JSStringRef stringRef = JSStringCreateWithUTF8CString(res);
+	JSStringRef stringRef = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(res).c_str());
 	output = JSValueMakeString(context, stringRef);
 	JSStringRelease(stringRef);
 
@@ -74,13 +96,7 @@ static XMLCh* JS2XMLString(JSValueRef input, JSContextRef context) {
 	JSValueRef exception = NULL;
 	JSStringRef stringInput = JSValueToStringCopy(context, input, &exception);
 
-	// TODO: I am leaking!
-	size_t maxSize = JSStringGetMaximumUTF8CStringSize(stringInput);
-	char* output = new char[maxSize + 1];
-
-	JSStringGetUTF8CString(stringInput, output, maxSize);
-	XMLCh* ret = XERCESC_NS::XMLString::transcode(output);
-
+	XMLCh* ret = XERCESC_NS::XMLString::transcode(JS2String(stringInput).c_str());
 	return(ret);
 }
 
@@ -90,18 +106,7 @@ static XMLCh* JS2XMLString(JSValueRef input, JSContextRef context) {
 #endif
 
 namespace uscxml {
-
-	static std::string JS2StringAndRelease(JSStringRef strRef) {
-		if (strRef) {
-			const size_t maxSize = JSStringGetMaximumUTF8CStringSize(strRef);
-			std::vector<char> buffer(maxSize, 0);
-			JSStringGetUTF8CString(strRef, buffer.data(), maxSize);
-			JSStringRelease(strRef);
-			return std::string(buffer.data());
-		}
-		return "";
-	}
-
+	
 	static void DumpJSObject(uscxml::Logger &logger, JSContextRef ctx, JSObjectRef objRef) {
 		if (objRef) {
 			JSPropertyNameArrayRef properties = JSObjectCopyPropertyNames(ctx, objRef);
@@ -223,11 +228,7 @@ namespace uscxml {
 #ifndef NO_XERCESC
 
 	bool JSCNodeListHasPropertyCallback(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName) {
-		size_t propMaxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		char* propBuffer = new char[propMaxSize];
-		JSStringGetUTF8CString(propertyName, propBuffer, propMaxSize);
-		std::string propName(propBuffer);
-		free(propBuffer);
+		const std::string propName = JS2String(propertyName);
 
 		std::string base = "0123456789";
 		if (propName.find_first_not_of(base) != std::string::npos) {
@@ -246,11 +247,7 @@ namespace uscxml {
 	}
 
 	JSValueRef JSCNodeListGetPropertyCallback(JSContextRef context, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
-		size_t propMaxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		char* propBuffer = new char[propMaxSize];
-		JSStringGetUTF8CString(propertyName, propBuffer, propMaxSize);
-		std::string propName(propBuffer);
-		free(propBuffer);
+		const std::string propName = JS2String(propertyName);
 
 		std::string base = "0123456789";
 		if (propName.find_first_not_of(base) != std::string::npos) {
@@ -322,13 +319,13 @@ namespace uscxml {
 		JSStringRelease(ioProcName);
 
 		JSStringRef nameName = JSStringCreateWithUTF8CString("_name");
-		JSStringRef name = JSStringCreateWithUTF8CString(_callbacks->getName().c_str());
+		JSStringRef name = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getName()).c_str());
 		JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), nameName, JSValueMakeString(_ctx, name), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
 		JSStringRelease(nameName);
 		JSStringRelease(name);
 
 		JSStringRef sessionIdName = JSStringCreateWithUTF8CString("_sessionid");
-		JSStringRef sessionId = JSStringCreateWithUTF8CString(_callbacks->getSessionId().c_str());
+		JSStringRef sessionId = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getSessionId()).c_str());
 		JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), sessionIdName, JSValueMakeString(_ctx, sessionId), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
 		JSStringRelease(sessionIdName);
 		JSStringRelease(sessionId);
@@ -443,29 +440,36 @@ namespace uscxml {
 	}
 
 	Data JSCDataModel::getAsData(const std::string& content) {
-		// parse as JSON test 578
-		Data d = Data::fromJSON(content);
-		if (!d.empty()) {
-			return d;
-		}			
-
-		std::string trimmed = boost::trim_copy(content);
-		if (trimmed.length() > 0) {
-			if (isNumeric(trimmed.c_str(), 10)) {
-				d = Data(trimmed, Data::INTERPRETED);
-			}
-			else if (trimmed.length() >= 2 &&
-				((trimmed[0] == '"' && trimmed[trimmed.length() - 1] == '"') ||
-				(trimmed[0] == '\'' && trimmed[trimmed.length() - 1] == '\''))) {
-				d = Data(trimmed.substr(1, trimmed.length() - 2), Data::VERBATIM);
-			}
-			else {
-				// test558, test562
-				ERROR_EXECUTION(e, "Given content cannot be interpreted as data");
-				e.data.compound["context"] = Data(trimmed, Data::VERBATIM);
-				throw e;
-			}
+		Data d;
+		try {
+			/* SCXML-tutorial\Tests\ecma\Custom\types\testConditionalExpressions.scxml */
+			d = evalAsData(content);
 		}
+		catch (uscxml::ErrorEvent &) {
+			// parse as JSON test578
+			d = Data::fromJSON(content);
+			if (!d.empty()) {
+				return d;
+			}
+
+			std::string trimmed = boost::trim_copy(content);
+			if (trimmed.length() > 0) {
+				if (isNumeric(trimmed.c_str(), 10)) {
+					d = Data(trimmed, Data::INTERPRETED);
+				}
+				else if (trimmed.length() >= 2 &&
+					((trimmed[0] == '"' && trimmed[trimmed.length() - 1] == '"') ||
+					(trimmed[0] == '\'' && trimmed[trimmed.length() - 1] == '\''))) {
+					d = Data(trimmed.substr(1, trimmed.length() - 2), Data::VERBATIM);
+				}
+				else {
+					// test558, test562
+					ERROR_EXECUTION(e, "Given content cannot be interpreted as data");
+					e.data.compound["context"] = Data(trimmed, Data::VERBATIM);
+					throw e;
+				}
+			}
+		}		
 		return d;
 	}
 
@@ -484,7 +488,7 @@ namespace uscxml {
 			JSObjectRef value = JSObjectMake(_ctx, 0, 0);
 			std::map<std::string, Data>::const_iterator compoundIter = data.compound.begin();
 			while (compoundIter != data.compound.end()) {
-				JSStringRef key = JSStringCreateWithUTF8CString(compoundIter->first.c_str());
+				JSStringRef key = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(compoundIter->first).c_str());
 				JSObjectSetProperty(_ctx, value, key, getDataAsValue(compoundIter->second), 0, &exception);
 				JSStringRelease(key);
 				if (exception)
@@ -509,7 +513,7 @@ namespace uscxml {
 		if (data.atom.size() > 0) {
 			switch (data.type) {
 			case Data::VERBATIM: {
-				JSStringRef stringRef = JSStringCreateWithUTF8CString(data.atom.c_str());
+				JSStringRef stringRef = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(data.atom).c_str());
 				JSValueRef value = JSValueMakeString(_ctx, stringRef);
 				JSStringRelease(stringRef);
 				return value;
@@ -584,10 +588,7 @@ namespace uscxml {
 			bool isArray = true;
 			for (size_t i = 0; i < paramCount; i++) {
 				JSStringRef stringValue = JSPropertyNameArrayGetNameAtIndex(properties, i);
-				size_t maxSize = JSStringGetMaximumUTF8CStringSize(stringValue);
-				std::vector<char> bufPtr(maxSize, 0);
-				JSStringGetUTF8CString(stringValue, bufPtr.data(), maxSize);
-				const std::string property(bufPtr.data());
+				const std::string property = JS2String(stringValue);
 				if (!isInteger(property.c_str(), 10))
 					isArray = false;
 				propertySet.insert(property);
@@ -603,7 +604,7 @@ namespace uscxml {
 					data.array.insert(std::make_pair(propIndex, getValueAsData(nestedValue)));
 				}
 				else {
-					JSStringRef jsString = JSStringCreateWithUTF8CString(propIter->c_str());
+					JSStringRef jsString = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(*propIter).c_str());
 					JSValueRef nestedValue = JSObjectGetProperty(_ctx, objValue, jsString, &exception);
 					JSStringRelease(jsString);
 					if (exception)
@@ -664,7 +665,7 @@ namespace uscxml {
 
 	bool JSCDataModel::isValidScriptSyntax(const std::string & script)
 	{
-		JSStringRef scriptJS = JSStringCreateWithUTF8CString(script.c_str());
+		JSStringRef scriptJS = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(script).c_str());
 		JSValueRef exception = NULL;
 		bool valid = JSCheckScriptSyntax(_ctx, scriptJS, NULL, 0, &exception);
 		JSStringRelease(scriptJS);
@@ -686,7 +687,7 @@ namespace uscxml {
 	}
 
 	bool JSCDataModel::isDeclared(const std::string& expr) {
-		JSStringRef scriptJS = JSStringCreateWithUTF8CString(expr.c_str());
+		JSStringRef scriptJS = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(expr).c_str());
 		JSValueRef exception = NULL;
 		JSValueRef result = JSEvaluateScript(_ctx, scriptJS, NULL, NULL, 0, &exception);
 		JSStringRelease(scriptJS);
@@ -730,8 +731,8 @@ namespace uscxml {
 		// test326
 		if (expr.empty())
 			return JSValueMakeUndefined(_ctx);
-		
-		JSStringRef scriptJS = JSStringCreateWithUTF8CString(expr.c_str());
+
+		JSStringRef scriptJS = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(expr).c_str());
 		JSValueRef exception = NULL;
 		JSValueRef result = JSEvaluateScript(_ctx, scriptJS, NULL, NULL, 0, &exception);
 		JSStringRelease(scriptJS);
@@ -770,7 +771,7 @@ namespace uscxml {
 		JSValueRef exception = NULL;
 		if (data.node) {
 #ifndef NO_XERCESC
-			JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), JSStringCreateWithUTF8CString(location.c_str()), getNodeAsValue(data.node), 0, &exception);
+			JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(location).c_str()), getNodeAsValue(data.node), 0, &exception);
 #else
 			ERROR_EXECUTION_THROW("Compiled without DOM support");
 #endif
@@ -784,11 +785,6 @@ namespace uscxml {
 				evalAsValue(location + "=" + Data::toJSON(data));
 			}
 		}
-
-		/**
-		 * test157: We need to evaluate, as this will not throw for 'continue' = Var[5] in
-		 */
-		 //    JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), JSStringCreateWithUTF8CString(location.c_str()), getDataAsValue(data), 0, &exception);
 
 		if (exception)
 			handleException(exception, "location:[" + location + "] data:[" + data.asJSON() + "]");
@@ -881,10 +877,7 @@ namespace uscxml {
 		JSCDataModel* INSTANCE = (JSCDataModel*)JSObjectGetPrivate(object);
 		std::map<std::string, IOProcessor> ioProcessors = INSTANCE->_callbacks->getIOProcessors();
 
-		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		std::vector<char>buffer(maxSize, 0);
-		JSStringGetUTF8CString(propertyName, buffer.data(), maxSize);
-		const std::string prop(buffer.data());
+		const std::string prop = JS2String(propertyName);
 
 		return ioProcessors.find(prop) != ioProcessors.end();
 	}
@@ -893,10 +886,7 @@ namespace uscxml {
 		JSCDataModel* INSTANCE = (JSCDataModel*)JSObjectGetPrivate(object);
 		std::map<std::string, IOProcessor> ioProcessors = INSTANCE->_callbacks->getIOProcessors();
 
-		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		std::vector<char>buffer(maxSize, 0);
-		JSStringGetUTF8CString(propertyName, buffer.data(), maxSize);
-		const std::string prop(buffer.data());
+		const std::string prop = JS2String(propertyName);
 
 		auto it = ioProcessors.find(prop);
 		if (it != ioProcessors.end()) {
@@ -911,7 +901,7 @@ namespace uscxml {
 
 		std::map<std::string, IOProcessor>::const_iterator ioProcIter = ioProcessors.begin();
 		while (ioProcIter != ioProcessors.end()) {
-			JSStringRef ioProcName = JSStringCreateWithUTF8CString(ioProcIter->first.c_str());
+			JSStringRef ioProcName = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(ioProcIter->first).c_str());
 			JSPropertyNameAccumulatorAddName(propertyNames, ioProcName);
 			ioProcIter++;
 		}
@@ -922,10 +912,7 @@ namespace uscxml {
 		JSCDataModel* INSTANCE = (JSCDataModel*)JSObjectGetPrivate(object);
 		std::map<std::string, Invoker> invokers = INSTANCE->_callbacks->getInvokers();
 
-		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		std::vector<char>buffer(maxSize, 0);
-		JSStringGetUTF8CString(propertyName, buffer.data(), maxSize);
-		const std::string prop(buffer.data());
+		const std::string prop = JS2String(propertyName);
 
 		return invokers.find(prop) != invokers.end();
 	}
@@ -934,10 +921,7 @@ namespace uscxml {
 		JSCDataModel* INSTANCE = (JSCDataModel*)JSObjectGetPrivate(object);
 		std::map<std::string, Invoker> invokers = INSTANCE->_callbacks->getInvokers();
 
-		const size_t maxSize = JSStringGetMaximumUTF8CStringSize(propertyName);
-		std::vector<char>buffer(maxSize, 0);
-		JSStringGetUTF8CString(propertyName, buffer.data(), maxSize);
-		const std::string prop(buffer.data());
+		const std::string prop = JS2String(propertyName);
 
 		if (invokers.find(prop) != invokers.end()) {
 			return INSTANCE->getDataAsValue(invokers.find(prop)->second.getDataModelVariables());
@@ -951,7 +935,7 @@ namespace uscxml {
 
 		std::map<std::string, Invoker>::const_iterator invokerIter = invokers.begin();
 		while (invokerIter != invokers.end()) {
-			JSStringRef invokeName = JSStringCreateWithUTF8CString(invokerIter->first.c_str());
+			JSStringRef invokeName = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(invokerIter->first).c_str());
 			JSPropertyNameAccumulatorAddName(propertyNames, invokeName);
 			JSStringRelease(invokeName);
 			invokerIter++;
