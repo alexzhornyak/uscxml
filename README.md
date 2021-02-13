@@ -1,10 +1,12 @@
 # ArrayAsMap branch
 
 ## General difference from [original USCXML](https://github.com/tklab-tud/uscxml)
-- [Original USCXML](https://github.com/tklab-tud/uscxml) data array is **std::list\<Data\>**. It means that data starts from 0, but arrays in some datamodels may start from 1 or other digit, or may be like 1,3,5 etc. So in this branch we changed it from **std::list\<Data\>** to **std::map\<int,Data\>**
-That's why Data's array was changed from **std::list\<Data\>** to **std::map\<int,Data\>**.
-- [Original USCXML](https://github.com/tklab-tud/uscxml) stopped support in 2017. There some critical issues like [#179](https://github.com/tklab-tud/uscxml/issues/179) that must be corrected. So we do it in this branch.
-- [Original USCXML](https://github.com/tklab-tud/uscxml) has poor Windows support but this branch is completely tested and has Windows as the only target.
+#### 1) Data array was changed from `std::list\<Data\>` to `std::map\<int,Data\>`
+It means that data starts from 0, but arrays in some datamodels may start from 1 or other digit, or may be like 1,3,5 etc
+#### 2) Critical issues  like [#179](https://github.com/tklab-tud/uscxml/issues/179) were corrected
+Original USCXML master branch stopped support in 2017 but has critical issues like [#179](https://github.com/tklab-tud/uscxml/issues/179) and others
+#### 3) Full Windows Support
+Original USCXML has poor Windows support but this branch is completely tested and has Windows as the only target.
 
 ## Supported models
 - null
