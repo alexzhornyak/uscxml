@@ -1,5 +1,15 @@
 # ArrayAsMap branch
-This branch is oriented towards complete support of **LuaDatamodel**. That's why Data's array was changed from **std::list\<Data\>** to **std::map\<int,Data\>**. So, if you want to use other datamodel, you'd better to choose [the original uscxml source](https://github.com/tklab-tud/uscxml)
+
+## General difference from [original USCXML](https://github.com/tklab-tud/uscxml)
+- [Original USCXML](https://github.com/tklab-tud/uscxml) data array is **std::list\<Data\>**. It means that data starts from 0, but arrays in some datamodels may start from 1 or other digit, or may be like 1,3,5 etc. So in this branch we changed it from **std::list\<Data\>** to **std::map\<int,Data\>**
+That's why Data's array was changed from **std::list\<Data\>** to **std::map\<int,Data\>**.
+- [Original USCXML](https://github.com/tklab-tud/uscxml) stopped support in 2017. There some critical issues like [#179](https://github.com/tklab-tud/uscxml/issues/179) that must be corrected. So we do it in this branch.
+- [Original USCXML](https://github.com/tklab-tud/uscxml) has poor Windows support but this branch is completely tested and has Windows as the only target.
+
+## Supported models
+- null
+- lua
+- ecmascript (JavaScriptCore)
 
 # uSCXML ReadMe
 
