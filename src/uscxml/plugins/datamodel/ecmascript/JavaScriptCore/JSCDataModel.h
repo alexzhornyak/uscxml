@@ -50,7 +50,7 @@ namespace uscxml {
  *
  * ECMAScript data-model via JavaScriptCore.
  */
-class JSCDataModel : public DataModelImpl {
+class USCXML_API JSCDataModel : public DataModelImpl {
 public:
 	JSCDataModel();
 	virtual ~JSCDataModel();

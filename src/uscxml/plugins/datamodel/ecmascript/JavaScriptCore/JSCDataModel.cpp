@@ -318,17 +318,19 @@ namespace uscxml {
 		JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), ioProcName, jsIOProc, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
 		JSStringRelease(ioProcName);
 
-		JSStringRef nameName = JSStringCreateWithUTF8CString("_name");
-		JSStringRef name = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getName()).c_str());
-		JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), nameName, JSValueMakeString(_ctx, name), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
-		JSStringRelease(nameName);
-		JSStringRelease(name);
+		if (_callbacks) {
+			JSStringRef nameName = JSStringCreateWithUTF8CString("_name");
+			JSStringRef name = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getName()).c_str());
+			JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), nameName, JSValueMakeString(_ctx, name), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
+			JSStringRelease(nameName);
+			JSStringRelease(name);
 
-		JSStringRef sessionIdName = JSStringCreateWithUTF8CString("_sessionid");
-		JSStringRef sessionId = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getSessionId()).c_str());
-		JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), sessionIdName, JSValueMakeString(_ctx, sessionId), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
-		JSStringRelease(sessionIdName);
-		JSStringRelease(sessionId);
+			JSStringRef sessionIdName = JSStringCreateWithUTF8CString("_sessionid");
+			JSStringRef sessionId = JSStringCreateWithUTF8CString(uscxml::fromLocaleToUtf8(_callbacks->getSessionId()).c_str());
+			JSObjectSetProperty(_ctx, JSContextGetGlobalObject(_ctx), sessionIdName, JSValueMakeString(_ctx, sessionId), kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete, NULL);
+			JSStringRelease(sessionIdName);
+			JSStringRelease(sessionId);
+		}
 
 		evalAsValue("_x = {};");
 	}
@@ -671,12 +673,18 @@ namespace uscxml {
 		JSStringRelease(scriptJS);
 
 		if (exception) {
-			try {
+			if (_callbacks) {
+				try {
+					handleException(exception, script);
+				}
+				catch (uscxml::ErrorEvent &e) {
+					LOG(_callbacks->getLogger(), USCXML_ERROR) << e << std::endl;
+				}
+			}
+			else {
+				/* option to use for external syntax check */
 				handleException(exception, script);
-			}
-			catch (uscxml::ErrorEvent &e) {
-				LOG(_callbacks->getLogger(), USCXML_ERROR) << e << std::endl;
-			}
+			}			
 			return false;
 		}
 
@@ -830,7 +838,7 @@ namespace uscxml {
 		e.name = "error.execution";
 		e.eventType = uscxml::Event::PLATFORM;
 
-		if (!_callbacks->getName().empty()) {
+		if (_callbacks && !_callbacks->getName().empty()) {
 			e.data.compound["interpreter"] = Data(_callbacks->getName(), Data::VERBATIM);
 		}
 		if (!description.empty()) {
