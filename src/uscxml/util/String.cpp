@@ -25,7 +25,7 @@
 
 namespace uscxml {
 
-#define ISWHITESPACE(char) (isspace(char))
+#define ISWHITESPACE(symbol) (isspace(static_cast<unsigned char>(symbol)))
 
 std::string escapeMacro(std::string const &s) {
 	// inspired by http://stackoverflow.com/questions/2417588/escaping-a-c-string
@@ -110,12 +110,12 @@ std::string spaceNormalize(const std::string &text) {
 
 	size_t start = 0;
 	for (size_t i = 0; i < text.size(); i++) {
-		if (isspace(text[i])) {
+		if (ISWHITESPACE(text[i])) {
 			if (i > 0 && start < i) {
 				content << seperator << text.substr(start, i - start);
 				seperator = " ";
 			}
-			while (isspace(text[++i])); // skip whitespaces
+			while (ISWHITESPACE(text[++i])); // skip whitespaces
 			start = i;
 		} else if (i + 1 == text.size()) {
 			content << seperator << text.substr(start, i + 1 - start);
@@ -154,11 +154,11 @@ bool nameMatch(const std::string &eventDescs, const std::string &eventName) {
 	size_t start = 0;
 	std::string eventDesc;
 	for (size_t i = 0; i < eventDescs.size(); i++) {
-		if (isspace(eventDescs[i])) {
+		if (ISWHITESPACE(eventDescs[i])) {
 			if (i > 0 && start < i - 1) {
 				eventDesc = eventDescs.substr(start, i - start);
 			}
-			while (isspace(eventDescs[++i])); // skip whitespaces
+			while (ISWHITESPACE(eventDescs[++i])); // skip whitespaces
 			start = i;
 		} else if (i + 1 == eventDescs.size()) {
 			eventDesc = eventDescs.substr(start, i + 1 - start);
