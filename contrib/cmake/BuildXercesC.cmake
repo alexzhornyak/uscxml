@@ -1,3 +1,4 @@
+ 
 # see http://www.kitware.com/products/html/BuildingExternalProjectsWithCMake2.8.html
 # see http://tools.cinemapub.be/opendcp/opendcp-0.19-src/contrib/CMakeLists.txt
 
@@ -38,8 +39,8 @@ if(MSVC)
 	endif()
 	
 	externalproject_add(xerces-c
-		URL http://www.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.4.tar.gz
-		URL_MD5 21bb097b711a513275379b59757cba4c
+		URL http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.4.zip
+		URL_MD5 6fcd8ec268f6bfe11d8ce2cd7d25a185
 		BUILD_IN_SOURCE 1
 		PREFIX ${CMAKE_BINARY_DIR}/deps/xerces-c
 		CONFIGURE_COMMAND ""
@@ -58,8 +59,8 @@ if(MSVC)
 		)
 else()
 	externalproject_add(xerces-c
-		URL http://www.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.4.tar.gz
-		URL_MD5 21bb097b711a513275379b59757cba4c
+		URL http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.4.zip
+		URL_MD5 6fcd8ec268f6bfe11d8ce2cd7d25a185
 		BUILD_IN_SOURCE 0
 		PREFIX ${CMAKE_BINARY_DIR}/deps/xerces-c
 		CONFIGURE_COMMAND 

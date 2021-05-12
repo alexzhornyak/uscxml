@@ -1,5 +1,5 @@
 # travis build slaves ony feature 2.8.7 - let's hope it's sufficient
-cmake_minimum_required(VERSION 2.8.7 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 # build type has to be set before the project definition
 SET(BUILD_TYPE_HELP "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug, Release, RelWithDebInfo, MinSizeRel.")
@@ -35,7 +35,7 @@ set(CMAKE_MACOSX_RPATH 1)
 # specify USCXML version
 SET(USCXML_VERSION_MAJOR "2")
 SET(USCXML_VERSION_MINOR "0")
-SET(USCXML_VERSION_PATCH "0")
+SET(USCXML_VERSION_PATCH "1")
 SET(USCXML_VERSION ${USCXML_VERSION_MAJOR}.${USCXML_VERSION_MINOR}.${USCXML_VERSION_PATCH})
 
 # Normalize CMAKE_SYSTEM_PROCESSOR for build target
@@ -217,7 +217,9 @@ OPTION(BUILD_BINDING_CSHARP "Build language bindings for CSharp" ON)
 OPTION(BUILD_BINDING_PYTHON "Build language bindings for Python" ON)
 OPTION(BUILD_BINDING_PHP "Build language bindings for PHP" OFF)
 
-OPTION(WITH_CACHE_FILES "Support for caching data in temporary files" ON)
+OPTION(BUILD_USE_VLD "Build with VLD memory leak detector" OFF)
+
+OPTION(WITH_CACHE_FILES "Support for caching data in temporary files" OFF)
 
 #################################################
 # Dependent Libraries
@@ -295,6 +297,18 @@ find_package(LibEvent)
 if (LIBEVENT_FOUND)
 	include_directories(${LIBEVENT_INCLUDE_DIR})
 	list (APPEND USCXML_CORE_LIBS ${LIBEVENT_LIBRARIES})
+
+	include(CheckCXXSourceCompiles)
+	set(CMAKE_REQUIRED_INCLUDES ${LIBEVENT_INCLUDE_DIR})
+	set(CMAKE_REQUIRED_LIBRARIES ${LIBEVENT_LIBRARIES})
+	check_cxx_source_compiles("
+		#include <event2/http.h>
+		struct bufferevent* cb(struct event_base *base, void *arg) { return NULL; }
+		int main(){ evhttp_set_bevcb((struct evhttp*)NULL, cb, (void*)NULL); }
+	" LIBEVENT_HAS_BEVCB)
+	if (NOT LIBEVENT_HAS_BEVCB)
+		message(STATUS "libevent (< 2.1) does not feature evhttp_set_bevcb, not building HTTPS support")
+	endif()
 else()
 	message(STATUS "--> will download and compile")
 	include("${CMAKE_MODULE_PATH}/BuildLibEvent.cmake")
@@ -330,6 +344,21 @@ endif()
 #     endif()
 # endif()
 
+set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
+set(Boost_USE_MULTITHREADED      ON)
+
+find_package(Boost 1.64.0 REQUIRED
+	COMPONENTS system locale
+)
+if(Boost_FOUND)
+
+	set(BOOST_ROOT ${Boost_INCLUDE_DIR})
+
+	include_directories(${Boost_INCLUDE_DIRS})
+	list (APPEND USCXML_CORE_LIBS ${Boost_LIBRARIES})
+else()
+	message(FATAL_ERROR "BOOST is not found")
+endif()
 
 ################################
 # Optional
@@ -352,6 +381,7 @@ find_package(SWIG)
 
 
 # JavaScriptCore
+# https://github.com/Lichtso/JSC-Standalone
 OPTION(WITH_DM_ECMA_JSC "Do search for JavaScriptCore" ON)
 if (WITH_DM_ECMA_JSC)
 	find_package(JSC)
@@ -374,6 +404,10 @@ if (WITH_DM_ECMA_V8)
 		set(ECMA_FOUND ON)
 		include_directories(${V8_INCLUDE_DIR})
 		list (APPEND USCXML_OPT_LIBS ${V8_LIBRARY})
+
+		# message(WARNING "We no longer support the V8 ECMAScript engine - contributions are welcome")
+		# set(V8_FOUND OFF)
+		# set(WITH_DM_ECMA_V8 OFF)
 	else()
 		set(WITH_DM_ECMA_V8 OFF)
 	endif()
@@ -397,7 +431,7 @@ if (WITH_DM_LUA)
 endif()
 
 # Python
-OPTION(WITH_DM_PYTHON "Do search for the Python libraries" ON)
+OPTION(WITH_DM_PYTHON "Do search for the Python libraries" OFF)
 if (WITH_DM_PYTHON)
 	find_package(PythonLibs)
 	if (PYTHONLIBS_FOUND)
@@ -422,7 +456,7 @@ if (WITH_DM_C89)
 	endif()
 endif()
 
-OPTION(WITH_DM_PROMELA "Do build with promela datamodel support" ON)
+OPTION(WITH_DM_PROMELA "Do build with promela datamodel support" OFF)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
 	SET_SOURCE_FILES_PROPERTIES(src/uscxml/plugins/datamodel/promela/parser/promela.lex.yy.cpp PROPERTIES COMPILE_FLAGS -Wno-deprecated-register )
 endif()
@@ -446,6 +480,10 @@ if (BUILD_AS_PLUGINS)
 else()	
 	add_library(uscxml ${USCXML_FILES})
 	target_link_libraries(uscxml ${USCXML_OPT_LIBS} ${USCXML_CORE_LIBS})
+endif()
+
+if (BUILD_USE_VLD)
+	add_definitions(-DBUILD_USE_VLD)
 endif()
 
 set_property(TARGET uscxml PROPERTY CXX_STANDARD 11)

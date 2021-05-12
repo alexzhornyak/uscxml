@@ -39,7 +39,9 @@
 #include <memory>
 #include <mutex>
 
-#include <Vld.h>
+#ifdef BUILD_USE_VLD
+	#include <Vld.h>
+#endif
 
 #define VERBOSE 0
 

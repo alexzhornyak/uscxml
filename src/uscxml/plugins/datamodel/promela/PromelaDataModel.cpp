@@ -176,14 +176,14 @@ void PromelaDataModel::setEvent(const Event& event) {
 		}
 
 		if (data.array.size() > 0) {
-			for (std::list<Data>::iterator iter = data.array.begin(); iter != data.array.end(); iter++) {
-				adaptType(*iter);
+			for (auto iter = data.array.begin(); iter != data.array.end(); ++iter) {
+				adaptType(iter->second);
 			}
 			return;
 		}
 
 		if (data.compound.size() > 0) {
-			for (std::map<std::string, Data>::iterator iter = data.compound.begin(); iter != data.compound.end(); iter++) {
+			for (auto iter = data.compound.begin(); iter != data.compound.end(); ++iter) {
 				adaptType(iter->second);
 			}
 			return;
@@ -344,7 +344,7 @@ void PromelaDataModel::setEvent(const Event& event) {
 
 					variable.compound["size"] = Data(size);
 					for (int i = 0; i < size; i++) {
-						variable.compound["value"].array.push_back(Data(0, Data::INTERPRETED));
+						variable.compound["value"].array.insert(std::make_pair(i, Data(0, Data::INTERPRETED)));
 					}
 
 					assert(opIterAsgn == (*nameIter)->operands.end());
