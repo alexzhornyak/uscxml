@@ -786,7 +786,7 @@ namespace uscxml {
 		}
 		else {
 			
-			if (data.type == Data::VERBATIM && !data.atom.empty() && isValidExprSyntax(data.atom)) {
+			if (data.type == Data::INTERPRETED && !data.atom.empty() && isValidExprSyntax(data.atom)) {
 				evalAsValue(location + "=" + data.atom);
 			}
 			else {
