@@ -58,6 +58,10 @@ public:
 
 	/// @copydoc InvokerImpl::serialize
 	virtual Data serialize();
+
+	/// @copydoc InvokerImpl::internalID
+	virtual std::string internalID() const;
+
 protected:
 	std::shared_ptr<InvokerImpl> _impl;
 };

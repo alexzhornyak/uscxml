@@ -98,6 +98,16 @@ Data USCXMLInvoker::serialize() {
 	return encodedState;
 }
 
+std::string USCXMLInvoker::internalID() const {
+	if (_invokedInterpreter) {
+		auto impl = _invokedInterpreter.getImpl();
+		if (impl) {
+			return impl->getSessionId();
+		}
+	}
+	return "";
+}
+
 void USCXMLInvoker::uninvoke() {
 	_isActive = false;
 	stop();

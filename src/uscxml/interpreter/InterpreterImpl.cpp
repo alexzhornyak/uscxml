@@ -65,6 +65,21 @@ std::map<std::string, std::weak_ptr<InterpreterImpl> > InterpreterImpl::getInsta
 	return _instances;
 }
 
+std::string InterpreterImpl::getInvokedScxmlName(const std::string &invokeid) const {	
+	auto itInv = _invokers.find(invokeid);
+	if (itInv != _invokers.end()) {		
+		auto sessionID = itInv->second.internalID();
+
+		auto instances = getInstances();
+		auto instance = instances.find(sessionID);
+		if (auto session = instance->second.lock()) {
+			return session->getName();
+		}
+	}
+
+	return "";
+}
+
 void InterpreterImpl::addInstance(std::shared_ptr<InterpreterImpl> interpreterImpl) {
 	std::lock_guard<std::recursive_mutex> lock(_instanceMutex);
 	assert(_instances.find(interpreterImpl->getSessionId()) == _instances.end());

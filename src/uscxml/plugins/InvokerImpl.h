@@ -109,6 +109,11 @@ public:
 		return Data();
 	}
 
+	/**
+	* Internal identifier of the invoked service. For example: internal session id for USCXMLInvoker	
+	*/
+	virtual std::string internalID() const { return ""; }
+
 protected:
 	/**
 	 * Return an event to the SCXML Interpreter instance.

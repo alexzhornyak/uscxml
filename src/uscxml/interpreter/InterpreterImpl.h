@@ -282,6 +282,9 @@ public:
 		return _document;
 	}
 
+	/* valid only for USCXMLInvoker */
+	std::string getInvokedScxmlName(const std::string &invokeid) const;
+	
 protected:
 	static void addInstance(std::shared_ptr<InterpreterImpl> instance);
 

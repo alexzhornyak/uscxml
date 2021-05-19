@@ -44,5 +44,10 @@ Data Invoker::serialize()     {
 	return _impl->serialize();
 }
 
+std::string Invoker::internalID() const
+{
+	return _impl->internalID();
+}
+
 
 }

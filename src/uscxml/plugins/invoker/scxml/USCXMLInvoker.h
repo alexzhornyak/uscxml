@@ -52,9 +52,9 @@ public:
 
 	USCXMLInvoker();
 	virtual ~USCXMLInvoker();
-	virtual std::shared_ptr<InvokerImpl> create(InvokerCallbacks* callbacks);
+	virtual std::shared_ptr<InvokerImpl> create(InvokerCallbacks* callbacks) override;
 
-	virtual std::list<std::string> getNames() {
+	virtual std::list<std::string> getNames() override {
 		std::list<std::string> names;
 		names.push_back("scxml");
 		names.push_back("uscxml");
@@ -63,14 +63,16 @@ public:
 		return names;
 	}
 
-	virtual void eventFromSCXML(const Event& event);
+	virtual void eventFromSCXML(const Event& event) override;
 
-	virtual Data getDataModelVariables();
-	virtual void invoke(const std::string& source, const Event& invokeEvent);
-	virtual void uninvoke();
+	virtual Data getDataModelVariables() override;
+	virtual void invoke(const std::string& source, const Event& invokeEvent) override;
+	virtual void uninvoke() override;
 
-	virtual void deserialize(const Data& encodedState);
-	virtual Data serialize();
+	virtual void deserialize(const Data& encodedState) override;
+	virtual Data serialize() override;
+
+	virtual std::string internalID() const override;
 
 protected:
 
