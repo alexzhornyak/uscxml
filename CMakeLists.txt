@@ -344,7 +344,12 @@ endif()
 #     endif()
 # endif()
 
-# set(Boost_USE_STATIC_LIBS        OFF)  # only find static libs
+if (UNIX)
+	set(Boost_USE_STATIC_LIBS        OFF)
+else()
+	set(Boost_USE_STATIC_LIBS        ON) # only find static libs
+endif()
+
 set(Boost_USE_MULTITHREADED      ON)
 
 find_package(Boost 1.64.0 REQUIRED
