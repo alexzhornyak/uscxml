@@ -467,10 +467,7 @@ OPTION(WITH_DM_PROMELA "Do build with promela datamodel support" OFF)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
 	SET_SOURCE_FILES_PROPERTIES(src/uscxml/plugins/datamodel/promela/parser/promela.lex.yy.cpp PROPERTIES COMPILE_FLAGS -Wno-deprecated-register )
 endif()
-if (WIN32)
-# LuaForWindows https://code.google.com/archive/p/luaforwindows/downloads
-set(ENV{LUA_DIR} "C:/Program Files (x86)/Lua/5.1/")
-endif()
+
 add_subdirectory(src/uscxml)
 add_subdirectory(src/bindings)
 
