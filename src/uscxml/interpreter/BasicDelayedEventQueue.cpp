@@ -210,7 +210,7 @@ Data BasicDelayedEventQueue::serialize() {
 		delayedEvent["event"] = event;
 		delayedEvent["delay"] = Data(delayMs, Data::INTERPRETED);
 
-		serialized["BasicDelayedEventQueue"].array.insert(std::make_pair(index++,event));
+		serialized["BasicDelayedEventQueue"].array.insert(std::make_pair(index++,event.data));
 	}
 
 	start();

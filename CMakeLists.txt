@@ -344,7 +344,7 @@ endif()
 #     endif()
 # endif()
 
-set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
+# set(Boost_USE_STATIC_LIBS        OFF)  # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
 
 find_package(Boost 1.64.0 REQUIRED
@@ -382,6 +382,7 @@ find_package(SWIG)
 
 # JavaScriptCore
 # https://github.com/Lichtso/JSC-Standalone
+# sudo apt-get install libjavascriptcoregtk-4.0-dev
 OPTION(WITH_DM_ECMA_JSC "Do search for JavaScriptCore" ON)
 if (WITH_DM_ECMA_JSC)
 	find_package(JSC)
@@ -416,17 +417,18 @@ endif()
 # Lua
 OPTION(WITH_DM_LUA "Do search for the Lua libraries" ON)
 if (WITH_DM_LUA)
-	if (WIN32)
-		# LuaForWindows https://code.google.com/archive/p/luaforwindows/downloads
-		set(ENV{LUA_DIR} "C:/Program Files (x86)/Lua/5.1/")
-	endif()
-	find_package(Lua51)
-	if (LUA51_FOUND)
+	find_package(Lua)
+	if (LUA_FOUND)
 		include_directories (${LUA_INCLUDE_DIR})
 		include_directories(${PROJECT_SOURCE_DIR}/contrib/src/LuaBridge)
 		list (APPEND USCXML_OPT_LIBS ${LUA_LIBRARIES})
+		message(STATUS "Lua - include = ${LUA_INCLUDE_DIR}")
+		message(STATUS "Lua - lib = ${LUA_LIBRARIES}")
 	else()
 		set(WITH_DM_LUA OFF)
+		message(WARNING "Lua is not found! It is intended to be the MAIN DATAMODEL!")
+		# Ubuntu 20
+		# sudo apt-get install -y liblua5.3-dev
 	endif()
 endif()
 
@@ -460,7 +462,10 @@ OPTION(WITH_DM_PROMELA "Do build with promela datamodel support" OFF)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
 	SET_SOURCE_FILES_PROPERTIES(src/uscxml/plugins/datamodel/promela/parser/promela.lex.yy.cpp PROPERTIES COMPILE_FLAGS -Wno-deprecated-register )
 endif()
-
+if (WIN32)
+# LuaForWindows https://code.google.com/archive/p/luaforwindows/downloads
+set(ENV{LUA_DIR} "C:/Program Files (x86)/Lua/5.1/")
+endif()
 add_subdirectory(src/uscxml)
 add_subdirectory(src/bindings)
 
@@ -511,7 +516,12 @@ add_executable(uscxml-browser apps/uscxml-browser.cpp ${GETOPT_FILES})
 set_property(TARGET uscxml-browser PROPERTY CXX_STANDARD 11)
 set_property(TARGET uscxml-browser PROPERTY CXX_STANDARD_REQUIRED ON)
 install_executable(TARGETS uscxml-browser COMPONENT tools)
-target_link_libraries(uscxml-browser uscxml)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	target_link_libraries(uscxml-browser uscxml "-lz")
+else()
+	target_link_libraries(uscxml-browser uscxml)
+endif()	
 
 add_executable(uscxml-transform apps/uscxml-transform.cpp ${GETOPT_FILES})
 set_property(TARGET uscxml-transform PROPERTY CXX_STANDARD 11)

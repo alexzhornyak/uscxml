@@ -42,6 +42,8 @@ if (JSC_FOUND)
 		list (APPEND USCXML_FILES ${JSC_DATAMODEL})
 		list (APPEND USCXML_OPT_LIBS ${JSC_LIBRARY})
 	endif()
+else()
+	message(WARNING "EcmaScript (JSC) datamodel is not set!")
 endif()
 
 
@@ -72,7 +74,7 @@ if (V8_FOUND)
 endif()
 
 
-if (LUA51_FOUND AND WITH_DM_LUA)
+if (LUA_FOUND AND WITH_DM_LUA)
 	set(USCXML_DATAMODELS "lua ${USCXML_DATAMODELS}")
 	# Lua ecmascript datamodel
 	file(GLOB LUA_DATAMODEL
@@ -93,6 +95,8 @@ if (LUA51_FOUND AND WITH_DM_LUA)
 		list (APPEND USCXML_FILES ${LUA_DATAMODEL})
 		list (APPEND USCXML_OPT_LIBS ${LUA_LIBRARY})
 	endif()
+else()
+	message(WARNING "Lua datamodel is not set!")
 endif()
 
 if (WITH_DM_C89)

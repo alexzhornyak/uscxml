@@ -96,7 +96,7 @@ Data BasicEventQueue::serialize() {
 
 	int index = 0;
 	for (auto event : _queue) {
-		serialized["BasicEventQueue"].array.insert(std::make_pair(index++,event));
+		serialized["BasicEventQueue"].array.insert(std::make_pair(index++,event.data));
 	}
 	return serialized;
 }
