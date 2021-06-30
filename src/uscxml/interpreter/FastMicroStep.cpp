@@ -1098,40 +1098,93 @@ ESTABLISH_ENTRYSET:
 			if unlikely(USCXML_GET_STATE(i).ancestors.count() == 1 && BIT_HAS(0, USCXML_GET_STATE(i).ancestors)) {
 				// only the topmost scxml is an ancestor
 				_flags |= USCXML_CTX_TOP_LEVEL_FINAL;
-			} else {
-				/* raise done event */
-				_callbacks->raiseDoneEvent(USCXML_GET_STATE(USCXML_GET_STATE(i).parent).element, USCXML_GET_STATE(i).doneData);
 			}
+			else {
+				/* raise done event */
+				
+				State *pFinalParent = _states[USCXML_GET_STATE(i).parent];
+				_callbacks->raiseDoneEvent(pFinalParent->element, USCXML_GET_STATE(i).doneData);
 
-			/**
-			 * are we the last final state to leave a parallel state?:
-			 * 1. Gather all parallel states in our ancestor chain
-			 * 2. Find all states for which these parallels are ancestors
-			 * 3. Iterate all active final states and remove their ancestors
-			 * 4. If a state remains, not all children of a parallel are final
-			 */
-			for (j = 0; j < USCXML_NUMBER_STATES; j++) {
-				if unlikely(USCXML_STATE_MASK(USCXML_GET_STATE(j).type) == USCXML_STATE_PARALLEL &&
-				            BIT_HAS(j, USCXML_GET_STATE(i).ancestors)) {
-					tmpStates.reset();
-					k = _configuration.find_first();
-					while (k != boost::dynamic_bitset<BITSET_BLOCKTYPE>::npos) {
-						if (BIT_HAS(j, USCXML_GET_STATE(k).ancestors)) {
-							if (USCXML_STATE_MASK(USCXML_GET_STATE(k).type) == USCXML_STATE_FINAL) {
-								tmpStates ^= USCXML_GET_STATE(k).ancestors;
-							} else {
-								BIT_SET_AT(k, tmpStates);
+
+				/* 30.06.2021 Alex Zhornyak fixes #176, #203 */
+
+				/**
+				* are we the last final state to leave a parallel state?:
+				* 1. Iterate all parents climbing up
+				* 2. If parent is a 'parallel' make a copy of all nested children
+				* 3. Iterate all active final states and remove their siblings and parent state
+				* 4. Remove parent->parent state of final states if its type is 'parallel' and all children were previously removed
+				* 5. If there are no children left, generate 'done.state.'
+				*/
+
+				std::size_t nFinalAncestorsCount = pFinalParent->ancestors.count();
+				while (nFinalAncestorsCount > 0) {
+					const uint32_t nFinalParent = pFinalParent->parent;
+					pFinalParent = _states[nFinalParent];
+					nFinalAncestorsCount = pFinalParent->ancestors.count();
+
+					if unlikely(USCXML_STATE_MASK(pFinalParent->type) == USCXML_STATE_PARALLEL) {
+						tmpStates.reset();
+						/* make a copy of all 'parallel' state nested children */
+						tmpStates |= pFinalParent->children;
+
+						k = _configuration.find_first();
+
+						while (k != boost::dynamic_bitset<BITSET_BLOCKTYPE>::npos) {
+							if (BIT_HAS(nFinalParent, USCXML_GET_STATE(k).ancestors)) {
+								if unlikely(USCXML_STATE_MASK(USCXML_GET_STATE(k).type) == USCXML_STATE_FINAL) {
+									/* we are removing all 'final' siblings and its parent state */
+									auto stateParent = USCXML_GET_STATE(k).parent;
+									tmpStates ^= USCXML_GET_STATE(stateParent).children;
+									BIT_CLEAR(USCXML_GET_STATE(k).parent, tmpStates);
+
+									State *pState = _states[stateParent];
+									std::size_t nAncestorsCount = pState->ancestors.count();
+
+									/* we are removing parent->parent 'parallel' state if its children were deleted previously */
+									while (nAncestorsCount > 0) {
+										const uint32_t nParent = pState->parent;
+										pState = _states[nParent];
+										nAncestorsCount = pState->ancestors.count();
+
+										if unlikely(USCXML_STATE_MASK(pState->type) == USCXML_STATE_PARALLEL) {
+											/* are all 'parallel' children already removed ? */
+											if (!BIT_HAS_AND(tmpStates, pState->children)) {
+												BIT_CLEAR(nParent, tmpStates);
+
+												if (!tmpStates.any())
+													break; /* we removed last element, nothing to process further */
+											}
+											else
+												break;
+
+											if (nParent == nFinalParent)
+												break;
+										}
+										else
+											break;
+									}
+
+
+								}
 							}
+							k = _configuration.find_next(k);
 						}
-						k = _configuration.find_next(k);
+
+
+						if (!tmpStates.any()) {
+							_callbacks->raiseDoneEvent(pFinalParent->element, pFinalParent->doneData);
+						}
 					}
-					if (!tmpStates.any()) {
-						// raise done for state j
-						_callbacks->raiseDoneEvent(USCXML_GET_STATE(j).element, USCXML_GET_STATE(j).doneData);
-					}
+					else
+						/* stop parent chain because only parallel may be in final state */
+						break;
 				}
+
 			}
 		}
+
+
 	}
 	USCXML_MONITOR_CALLBACK(_callbacks->getMonitors(), afterMicroStep);
 
